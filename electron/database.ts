@@ -1,11 +1,12 @@
 import { app } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
-import { Game, User, UserRating, GameGenre, UserRole } from '../shared/types';
+import { Game, User, UserRating, GameGenre, UserRole } from '../src/shared/types';
 
 const dbPath = process.env.NODE_ENV === 'development'
-  ? path.join(__dirname, '../../data.db')
+  ? path.join(process.cwd(), 'data.db')
   : path.join(app.getPath('userData'), 'data.db');
 
 export async function getDb() {

@@ -6,13 +6,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist/main",
-    "rootDir": "./src",
+    "outDir": "./dist-electron",
     "types": ["node"]
   },
-  "include": [
-    "src/main/**/*",
-    "src/shared/**/*"
-  ],
+  "include": ["electron/**/*", "src/shared/**/*"],
   "exclude": ["node_modules", "src/renderer/**/*"]
 }
