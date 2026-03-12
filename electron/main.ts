@@ -1,6 +1,20 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import { initDatabase } from './database';
+import { AppDataSource } from './data-source';
+import { User } from '../src/entities/User';
+import 'reflect-metadata';
+
+async function createDefaultAdmin() {
+  const userRepo = AppDataSource.getRepository(User);
+  const adminExists = await userRepo.findOneBy({ role: 'admin' });
+  if (!adminExists) {
+    const admin = new User();
+    admin.username = 'admin';
+    await admin.setPassword('admin');
+    admin.role = 'admin';
+    await userRepo.save(admin);
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -22,7 +36,8 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  await initDatabase();
+  await AppDataSource.initialize();
+  await createDefaultAdmin();
   createWindow();
 });
 

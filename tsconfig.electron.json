@@ -7,8 +7,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist-electron",
-    "types": ["node"]
+    "types": ["node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
-  "include": ["electron/**/*", "src/shared/**/*"],
+  "include": ["electron/**/*", "src/entities/**/*", "src/shared/**/*"],
   "exclude": ["node_modules", "src/renderer/**/*"]
 }

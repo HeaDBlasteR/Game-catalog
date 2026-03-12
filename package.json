@@ -4,14 +4,14 @@
   "description": "",
   "main": "dist-electron/electron/main.js",
   "scripts": {
-  "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
-  "dev:renderer": "vite",
-  "dev:electron": "tsc -p tsconfig.electron.json && cross-env NODE_ENV=development electron .",
-  "build": "npm run build:renderer && npm run build:electron",
-  "build:renderer": "vite build",
-  "build:electron": "tsc -p tsconfig.electron.json",
-  "start": "cross-env NODE_ENV=production electron dist-electron/main.js",
-  "postinstall": "electron-rebuild"
+    "dev": "concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev:renderer": "vite",
+    "dev:electron": "tsc -p tsconfig.electron.json && cross-env NODE_ENV=development electron .",
+    "build": "npm run build:renderer && npm run build:electron",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "start": "cross-env NODE_ENV=production electron dist-electron/main.js",
+    "postinstall": "electron-rebuild"
   },
   "keywords": [],
   "author": "Artyom",
@@ -21,12 +21,15 @@
     "bcrypt": "^6.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "reflect-metadata": "^0.2.2",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "typeorm": "^0.3.28"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.0.3",
     "@types/bcrypt": "^6.0.0",
+    "@types/node": "^25.4.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/sqlite3": "^3.1.11",
