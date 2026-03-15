@@ -10,7 +10,7 @@
     "build": "npm run build:renderer && npm run build:electron",
     "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
-    "start": "cross-env NODE_ENV=production electron dist-electron/main.js",
+    "start": "cross-env NODE_ENV=production electron dist-electron/electron/main.js",
     "postinstall": "electron-rebuild"
   },
   "keywords": [],
@@ -21,6 +21,7 @@
     "bcrypt": "^6.0.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.13.1",
     "reflect-metadata": "^0.2.2",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",

@@ -1,0 +1,103 @@
+.game-card {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin: 8px;
+  border-radius: 8px;
+  width: 250px;
+}
+
+.game-card-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.rate-button {
+  font-size: 20px;
+}
+
+.rating-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.rating-modal-content {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+}
+
+.rating-stars {
+  font-size: 30px;
+  margin: 20px 0;
+}
+
+.rating-star {
+  cursor: pointer;
+}
+
+.rating-star.active {
+  color: gold;
+}
+
+.rating-star.inactive {
+  color: gray;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.page-container {
+  padding: 20px;
+}
+
+.filters-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-shortcut {
+  margin-bottom: 12px;
+}
+
+.games-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.auth-card {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: 20px;
+  border: 1px solid #ccc;
+}
+
+.error-text {
+  color: red;
+}
+
+.admin-form {
+  border: 1px solid #ccc;
+  padding: 20px;
+  margin: 20px 0;
+}
+
+.admin-form-actions {
+  margin-top: 10px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+}

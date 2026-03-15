@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { UserRole } from '../shared/types';
+import type { UserRole } from '../shared/types';
 import { UserRating } from './UserRating';
 import * as bcrypt from 'bcrypt';
 

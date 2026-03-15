@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { GameGenre } from '../shared/types';
+import type { GameGenre } from '../shared/types';
 import { UserRating } from './UserRating';
 
 @Entity('games')

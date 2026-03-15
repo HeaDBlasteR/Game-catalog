@@ -3,6 +3,10 @@ import path from 'path';
 import { AppDataSource } from './data-source';
 import { User } from '../src/entities/User';
 import 'reflect-metadata';
+import { registerAuthHandlers } from './ipc/auth';
+import { registerGamesHandlers } from './ipc/games';
+import { registerRatingsHandlers } from './ipc/ratings';
+import { registerAdminHandlers } from './ipc/admin';
 
 async function createDefaultAdmin() {
   const userRepo = AppDataSource.getRepository(User);
@@ -13,13 +17,14 @@ async function createDefaultAdmin() {
     await admin.setPassword('admin');
     admin.role = 'admin';
     await userRepo.save(admin);
+    console.log('Default admin created');
   }
 }
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 2880,
-    height: 1800,
+    width: 1280,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -38,6 +43,12 @@ function createWindow() {
 app.whenReady().then(async () => {
   await AppDataSource.initialize();
   await createDefaultAdmin();
+
+  registerAuthHandlers();
+  registerGamesHandlers();
+  registerRatingsHandlers();
+  registerAdminHandlers();
+
   createWindow();
 });
 
