@@ -101,3 +101,32 @@
   width: 100%;
   border-collapse: collapse;
 }
+
+.admin-table th,
+.admin-table td {
+  padding: 10px 14px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.admin-table th:first-child,
+.admin-table td:first-child {
+  padding-left: 18px;
+}
+
+.admin-table td:last-child {
+  white-space: nowrap;
+}
+
+.genre-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+}
+
+.genre-checkbox-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

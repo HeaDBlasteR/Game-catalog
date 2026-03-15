@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getGames: () => ipcRenderer.invoke('games:getAll'),
   getGame: (id: number) => ipcRenderer.invoke('games:get', id),
+  getGenres: () => ipcRenderer.invoke('genres:getAll'),
   launchGame: (gameId: number, userId: number) => ipcRenderer.invoke('games:launch', gameId, userId),
 
   rateGame: (userId: number, gameId: number, rating: 1|2|3|4|5) => ipcRenderer.invoke('ratings:rate', userId, gameId, rating),
@@ -14,4 +15,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addGame: (gameData: any, adminUserId: number) => ipcRenderer.invoke('admin:addGame', gameData, adminUserId),
   updateGame: (id: number, updates: any, adminUserId: number) => ipcRenderer.invoke('admin:updateGame', id, updates, adminUserId),
   deleteGame: (id: number, adminUserId: number) => ipcRenderer.invoke('admin:deleteGame', id, adminUserId),
+  addGenre: (genreData: { name: string; description: string }, adminUserId: number) => ipcRenderer.invoke('admin:addGenre', genreData, adminUserId),
+  deleteGenre: (id: number, adminUserId: number) => ipcRenderer.invoke('admin:deleteGenre', id, adminUserId),
 });

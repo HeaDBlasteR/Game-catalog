@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { gameDb } from '../database-service';
+import { gameDb, genreDb } from '../database-service';
 import { AppDataSource } from '../data-source';
 import { User } from '../../src/entities/User';
 
@@ -34,6 +34,25 @@ export function registerAdminHandlers() {
     try {
       if (!await checkAdmin(adminUserId)) throw new Error('Access denied');
       await gameDb.delete(id);
+      return { success: true };
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
+  ipcMain.handle('admin:addGenre', async (event, genreData, adminUserId: number) => {
+    try {
+      if (!await checkAdmin(adminUserId)) throw new Error('Access denied');
+      return await genreDb.create(genreData.name, genreData.description);
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
+  ipcMain.handle('admin:deleteGenre', async (event, id: number, adminUserId: number) => {
+    try {
+      if (!await checkAdmin(adminUserId)) throw new Error('Access denied');
+      await genreDb.delete(id);
       return { success: true };
     } catch (err: any) {
       throw new Error(err.message);

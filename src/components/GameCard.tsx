@@ -14,7 +14,6 @@ const GameCard: React.FC<GameCardProps> = ({ game, onLaunch, onRateClick }) => {
 
   useEffect(() => {
     if (user) {
-      // @ts-ignore
       window.electronAPI.getUserRating(user.id, game.id).then((rating: number | null) => {
         setUserRating(rating);
       });
@@ -31,7 +30,7 @@ const GameCard: React.FC<GameCardProps> = ({ game, onLaunch, onRateClick }) => {
   return (
     <div className="game-card">
       <h3>{game.title}</h3>
-      <p><strong>Жанр:</strong> {game.genre}</p>
+      <p><strong>Жанры:</strong> {game.genres.map(genre => genre.name).join(', ') || '-'}</p>
       <p><strong>Разработчик:</strong> {game.developer}</p>
       <p><strong>Рейтинг:</strong> {stars(game.averageRating)} ({game.averageRating.toFixed(1)})</p>
       <p><strong>Оценок:</strong> {game.totalRatings}</p>

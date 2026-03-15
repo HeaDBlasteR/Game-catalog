@@ -7,18 +7,35 @@ export interface User {
   role: UserRole;
 }
 
-export type GameGenre = 'Action packed' | 'Adventures' | 'Strategies' | 'Role-playing games' | 'Races' | 'Simulators';
+export interface Genre {
+  id: number;
+  name: string;
+  description: string;
+}
 
 export interface Game {
   id: number;
   title: string;
   description: string | null;
-  genre: GameGenre;
+  genres: Genre[];
   releaseDate: string;
   developer: string;
   averageRating: number;
   totalRatings: number;
   filePath: string;
+}
+
+export interface GameInput {
+  title: string;
+  description: string;
+  genreIds: number[];
+  releaseDate: string;
+  developer: string;
+  filePath: string;
+}
+
+export interface GameUpdateInput extends Partial<Omit<GameInput, 'genreIds'>> {
+  genreIds?: number[];
 }
 
 export interface UserRating {

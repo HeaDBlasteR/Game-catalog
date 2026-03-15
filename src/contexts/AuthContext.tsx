@@ -20,7 +20,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<User> => {
     try {
-      // @ts-ignore
       const userData = await window.electronAPI.login(username, password);
       setUser(userData);
       return userData;
@@ -31,7 +30,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (username: string, password: string): Promise<User> => {
     try {
-      // @ts-ignore
       const userData = await window.electronAPI.register(username, password);
       setUser(userData);
       return userData;

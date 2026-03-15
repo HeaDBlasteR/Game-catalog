@@ -1,7 +1,7 @@
 import 'reflect-metadata';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import type { GameGenre } from '../shared/types';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { UserRating } from './UserRating';
+import { Genre } from './Genre';
 
 @Entity('games')
 export class Game {
@@ -14,11 +14,13 @@ export class Game {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
-  @Column({
-    type: 'text',
-    enum: ['Action packed', 'Adventures', 'Strategies', 'Role-playing games', 'Races', 'Simulators']
+  @ManyToMany(() => Genre, genre => genre.games, { eager: true })
+  @JoinTable({
+    name: 'game_genres',
+    joinColumn: { name: 'gameId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'genreId', referencedColumnName: 'id' }
   })
-  genre!: GameGenre;
+  genres!: Genre[];
 
   @Column()
   releaseDate!: string;

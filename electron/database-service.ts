@@ -1,8 +1,23 @@
 import { AppDataSource } from './data-source';
+import { In } from 'typeorm';
 import { User } from '../src/entities/User';
 import { Game } from '../src/entities/Game';
 import { UserRating } from '../src/entities/UserRating';
-import { UserRole, Game as GameType, UserRating as RatingType } from '../src/shared/types';
+import { Genre } from '../src/entities/Genre';
+import { UserRole } from '../src/shared/types';
+
+type CreateGameInput = {
+  title: string;
+  description?: string | null;
+  releaseDate: string;
+  developer: string;
+  filePath: string;
+  genreIds: number[];
+};
+
+type UpdateGameInput = Partial<Omit<CreateGameInput, 'genreIds'>> & {
+  genreIds?: number[];
+};
 
 export const userDb = {
   findByUsername: async (username: string): Promise<User | null> => {
@@ -22,24 +37,102 @@ export const userDb = {
 export const gameDb = {
   getAll: async (): Promise<Game[]> => {
     const repo = AppDataSource.getRepository(Game);
-    return repo.find({ order: { title: 'ASC' } });
+    return repo.find({
+      order: { title: 'ASC' },
+      relations: ['genres']
+    });
   },
   getById: async (id: number): Promise<Game | null> => {
     const repo = AppDataSource.getRepository(Game);
-    return repo.findOneBy({ id });
+    return repo.findOne({
+      where: { id },
+      relations: ['genres']
+    });
   },
-  create: async (gameData: Omit<GameType, 'id' | 'averageRating' | 'totalRatings'>): Promise<Game> => {
-    const repo = AppDataSource.getRepository(Game);
-    const game = repo.create(gameData);
-    return repo.save(game);
+  create: async (gameData: CreateGameInput): Promise<Game> => {
+    const gameRepo = AppDataSource.getRepository(Game);
+    const genreRepo = AppDataSource.getRepository(Genre);
+
+    const genres = await genreRepo.findBy({ id: In(gameData.genreIds || []) });
+    if (!genres.length) {
+      throw new Error('Выберите хотя бы один жанр');
+    }
+
+    const game = gameRepo.create({
+      title: gameData.title,
+      description: gameData.description ?? null,
+      releaseDate: gameData.releaseDate,
+      developer: gameData.developer,
+      filePath: gameData.filePath,
+      genres
+    });
+
+    return gameRepo.save(game);
   },
-  update: async (id: number, updates: Partial<GameType>): Promise<void> => {
-    const repo = AppDataSource.getRepository(Game);
-    await repo.update(id, updates);
+  update: async (id: number, updates: UpdateGameInput): Promise<void> => {
+    const gameRepo = AppDataSource.getRepository(Game);
+    const genreRepo = AppDataSource.getRepository(Genre);
+
+    const game = await gameRepo.findOne({ where: { id }, relations: ['genres'] });
+    if (!game) throw new Error('Игра не найдена');
+
+    if (typeof updates.title === 'string') game.title = updates.title;
+    if (updates.description !== undefined) game.description = updates.description;
+    if (typeof updates.releaseDate === 'string') game.releaseDate = updates.releaseDate;
+    if (typeof updates.developer === 'string') game.developer = updates.developer;
+    if (typeof updates.filePath === 'string') game.filePath = updates.filePath;
+
+    if (updates.genreIds !== undefined) {
+      const genres = await genreRepo.findBy({ id: In(updates.genreIds) });
+      if (!genres.length) {
+        throw new Error('Выберите хотя бы один жанр');
+      }
+      game.genres = genres;
+    }
+
+    await gameRepo.save(game);
   },
   delete: async (id: number): Promise<void> => {
     const repo = AppDataSource.getRepository(Game);
     await repo.delete(id);
+  }
+};
+
+export const genreDb = {
+  getAll: async (): Promise<Genre[]> => {
+    const repo = AppDataSource.getRepository(Genre);
+    return repo.find({ order: { name: 'ASC' } });
+  },
+  create: async (name: string, description: string = ''): Promise<Genre> => {
+    const repo = AppDataSource.getRepository(Genre);
+    const normalizedName = name.trim();
+    if (!normalizedName) throw new Error('Название жанра обязательно');
+
+    const exists = await repo.findOneBy({ name: normalizedName });
+    if (exists) throw new Error('Жанр с таким названием уже существует');
+
+    const genre = repo.create({
+      name: normalizedName,
+      description: description.trim()
+    });
+    return repo.save(genre);
+  },
+  delete: async (id: number): Promise<void> => {
+    await AppDataSource.transaction(async manager => {
+      const genreRepo = manager.getRepository(Genre);
+      const genre = await genreRepo.findOne({ where: { id }, relations: ['games'] });
+      if (!genre) throw new Error('Жанр не найден');
+
+      if (genre.games.length) {
+        await manager
+          .createQueryBuilder()
+          .relation(Genre, 'games')
+          .of(id)
+          .remove(genre.games.map(game => game.id));
+      }
+
+      await genreRepo.delete(id);
+    });
   }
 };
 
