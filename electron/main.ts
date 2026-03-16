@@ -9,6 +9,7 @@ import { registerRatingsHandlers } from './ipc/ratings';
 import { registerAdminHandlers } from './ipc/admin';
 import { registerGenresHandlers } from './ipc/genres';
 import { DefaultGenreService } from './services/default-genre-service';
+import { migrateLegacyIconsToDatabase } from './database-service';
 
 async function createDefaultAdmin() {
   const userRepo = AppDataSource.getRepository(User);
@@ -44,6 +45,7 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await AppDataSource.initialize();
+  await migrateLegacyIconsToDatabase();
   await createDefaultAdmin();
   await DefaultGenreService.ensureDefaultGenres();
 

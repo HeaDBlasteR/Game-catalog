@@ -9,6 +9,25 @@ import { Genre } from '../src/entities/Genre';
 import { UserGameIcon } from '../src/entities/UserGameIcon';
 import { UserRole } from '../src/shared/types';
 
+const ICON_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ICON_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/svg+xml',
+  'image/x-icon',
+  'image/vnd.microsoft.icon'
+]);
+
+const ICON_EXTENSION_TO_MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon'
+};
+
 type CreateGameInput = {
   title: string;
   description?: string | null;
@@ -89,8 +108,6 @@ export const gameDb = {
     const game = await gameRepo.findOne({ where: { id }, relations: ['genres'] });
     if (!game) throw new Error('Игра не найдена');
 
-    const previousIconPath = game.iconPath;
-
     if (typeof updates.title === 'string') game.title = updates.title;
     if (updates.description !== undefined) game.description = updates.description;
     if (typeof updates.releaseDate === 'string') game.releaseDate = updates.releaseDate;
@@ -109,39 +126,16 @@ export const gameDb = {
     }
 
     await gameRepo.save(game);
-
-    if (previousIconPath && previousIconPath !== game.iconPath) {
-      await removeIconIfUnused(previousIconPath);
-    }
   },
   delete: async (id: number): Promise<void> => {
     const gameRepo = AppDataSource.getRepository(Game);
-    const userIconRepo = AppDataSource.getRepository(UserGameIcon);
-
-    const game = await gameRepo.findOneBy({ id });
-    const userOverrides = await userIconRepo.findBy({ gameId: id });
-
-    const iconCandidates = new Set<string>();
-    if (game?.iconPath) iconCandidates.add(game.iconPath);
-    for (const override of userOverrides) {
-      iconCandidates.add(override.iconPath);
-    }
-
     await gameRepo.delete(id);
-
-    for (const iconPath of iconCandidates) {
-      await removeIconIfUnused(iconPath);
-    }
   },
   setUserIcon: async (userId: number, gameId: number, iconPath: string | null): Promise<void> => {
     const repo = AppDataSource.getRepository(UserGameIcon);
-    const existing = await repo.findOneBy({ userId, gameId });
 
     if (!iconPath) {
       await repo.delete({ userId, gameId });
-      if (existing?.iconPath) {
-        await removeIconIfUnused(existing.iconPath);
-      }
       return;
     }
 
@@ -156,14 +150,11 @@ export const gameDb = {
       gameId,
       iconPath: normalizedIconPath
     });
-
-    if (existing?.iconPath && existing.iconPath !== normalizedIconPath) {
-      await removeIconIfUnused(existing.iconPath);
-    }
   },
   uploadIconFromLocalFile: async (sourceFilePath: string, scope: 'admin' | 'user', userId?: number): Promise<string> => {
     const extension = path.extname(sourceFilePath).toLowerCase();
-    if (!/\.(png|jpg|jpeg|webp|svg|ico)$/.test(extension)) {
+    const mimeType = ICON_EXTENSION_TO_MIME[extension];
+    if (!mimeType) {
       throw new Error('Неподдерживаемый формат иконки');
     }
 
@@ -171,21 +162,12 @@ export const gameDb = {
       throw new Error('Для пользовательской иконки требуется userId');
     }
 
-    const relativeSubDir = scope === 'admin' ? 'admin' : `users/${userId}`;
-    const baseName = path.basename(sourceFilePath, extension).replace(/[^a-zA-Z0-9_-]/g, '-');
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${baseName || 'icon'}${extension}`;
-    const roots = getWritableIconRoots();
-
-    for (const root of roots) {
-      const targetDir = path.join(root, relativeSubDir);
-      await fs.promises.mkdir(targetDir, { recursive: true });
-      const destinationPath = path.join(targetDir, uniqueName);
-      await fs.promises.copyFile(sourceFilePath, destinationPath);
+    const buffer = await fs.promises.readFile(sourceFilePath);
+    if (buffer.length > ICON_UPLOAD_MAX_BYTES) {
+      throw new Error('Иконка слишком большая. Максимальный размер: 5 МБ');
     }
 
-    return scope === 'admin'
-      ? `icons/admin/${uniqueName}`
-      : `icons/users/${userId}/${uniqueName}`;
+    return buildIconDataUrl(buffer, mimeType);
   }
 };
 
@@ -312,170 +294,135 @@ async function applyUserIconOverrides(games: Game[], userId?: number): Promise<G
   });
 }
 
-function listAvailableIconPaths(): string[] {
-  const roots = getReadableIconRoots();
-  const unique = new Set<string>();
-
-  for (const root of roots) {
-    if (!fs.existsSync(root)) continue;
-    for (const iconPath of collectIconPathsRecursive(root, root)) {
-      unique.add(iconPath);
-    }
-  }
-
-  return Array.from(unique).sort((a, b) => a.localeCompare(b, 'ru'));
-}
-
-function resolveIconsDirectory(): string | null {
-  const candidates = [
-    path.join(process.cwd(), 'public', 'icons'),
-    path.join(process.cwd(), 'dist', 'icons'),
-    path.join(__dirname, '../../dist/icons')
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return candidates[0];
-}
-
 async function validateIconPath(iconPath?: string | null): Promise<string | null> {
   const normalized = sanitizeIconPath(iconPath);
   if (!normalized) return null;
 
-  if (!/^icons\/(admin\/[a-zA-Z0-9._-]+|users\/\d+\/[a-zA-Z0-9._-]+)$/.test(normalized)) {
-    throw new Error('Некорректный путь иконки');
+  if (normalized.startsWith('data:')) {
+    return validateDataUrlIcon(normalized);
   }
 
-  const availableIcons = await listAvailableIconPaths();
-  if (!availableIcons.includes(normalized)) {
-    throw new Error('Иконка не найдена в public/icons');
-  }
-
-  return normalized;
-}
-
-function ensureIconsDirectory(): string {
-  const iconsDir = getPrimaryIconsRoot();
-  fs.mkdirSync(iconsDir, { recursive: true });
-  return iconsDir;
-}
-
-function ensureAdminIconsDirectory(): string {
-  const dir = path.join(ensureIconsDirectory(), 'admin');
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function ensureUserIconsDirectory(userId: number): string {
-  const dir = path.join(ensureIconsDirectory(), 'users', String(userId));
-  fs.mkdirSync(dir, { recursive: true });
-  return dir;
-}
-
-function collectIconPathsRecursive(rootDir: string, currentDir: string): string[] {
-  const entries = fs.readdirSync(currentDir, { withFileTypes: true });
-  const result: string[] = [];
-
-  for (const entry of entries) {
-    const fullPath = path.join(currentDir, entry.name);
-    if (entry.isDirectory()) {
-      result.push(...collectIconPathsRecursive(rootDir, fullPath));
-      continue;
+  if (normalized.startsWith('icons/')) {
+    const migrated = await convertLegacyIconPathToDataUrl(normalized);
+    if (!migrated) {
+      throw new Error('Иконка не найдена для миграции в базу данных');
     }
-
-    if (!entry.isFile() || !/\.(png|jpg|jpeg|webp|svg|ico)$/i.test(entry.name)) {
-      continue;
-    }
-
-    const relative = path.relative(rootDir, fullPath).replace(/\\/g, '/');
-    result.push(`icons/${relative}`);
+    return migrated;
   }
 
-  return result;
+  throw new Error('Некорректный формат иконки');
 }
 
-function resolveIconAbsolutePath(iconPath: string): string | null {
+function validateDataUrlIcon(iconDataUrl: string): string {
+  const match = /^data:([^;]+);base64,([A-Za-z0-9+/=]+)$/.exec(iconDataUrl);
+  if (!match) {
+    throw new Error('Некорректный формат data URL для иконки');
+  }
+
+  const mimeType = match[1].toLowerCase();
+  if (!ALLOWED_ICON_MIME_TYPES.has(mimeType)) {
+    throw new Error('Неподдерживаемый MIME-тип иконки');
+  }
+
+  const binary = Buffer.from(match[2], 'base64');
+  if (!binary.length) {
+    throw new Error('Иконка не содержит данных');
+  }
+
+  if (binary.length > ICON_UPLOAD_MAX_BYTES) {
+    throw new Error('Иконка слишком большая. Максимальный размер: 5 МБ');
+  }
+
+  return `data:${mimeType};base64,${binary.toString('base64')}`;
+}
+
+function buildIconDataUrl(buffer: Buffer, mimeType: string): string {
+  return `data:${mimeType};base64,${buffer.toString('base64')}`;
+}
+
+async function convertLegacyIconPathToDataUrl(iconPath: string): Promise<string | null> {
+  const absolutePath = resolveLegacyIconAbsolutePath(iconPath);
+  if (!absolutePath || !fs.existsSync(absolutePath)) {
+    return null;
+  }
+
+  const extension = path.extname(absolutePath).toLowerCase();
+  const mimeType = ICON_EXTENSION_TO_MIME[extension];
+  if (!mimeType) {
+    return null;
+  }
+
+  const buffer = await fs.promises.readFile(absolutePath);
+  if (!buffer.length || buffer.length > ICON_UPLOAD_MAX_BYTES) {
+    return null;
+  }
+
+  return buildIconDataUrl(buffer, mimeType);
+}
+
+function resolveLegacyIconAbsolutePath(iconPath: string): string | null {
   const normalized = sanitizeIconPath(iconPath);
   if (!normalized || !normalized.startsWith('icons/')) {
     return null;
   }
 
   const relative = normalized.slice('icons/'.length);
-  const roots = getReadableIconRoots();
-
-  for (const root of roots) {
+  for (const root of getLegacyIconRoots()) {
     const candidate = path.join(root, relative);
     if (fs.existsSync(candidate)) {
       return candidate;
     }
   }
 
-  return path.join(getPrimaryIconsRoot(), relative);
+  return null;
 }
 
-async function removeIconIfUnused(iconPath: string): Promise<void> {
-  const normalized = sanitizeIconPath(iconPath);
-  if (!normalized) return;
+function getLegacyIconRoots(): string[] {
+  const roots = [
+    path.join(process.cwd(), 'public', 'icons'),
+    path.join(process.cwd(), 'dist', 'icons'),
+    path.join(__dirname, '../../dist/icons')
+  ];
 
+  return Array.from(new Set(roots.map(root => path.normalize(root))));
+}
+
+export async function migrateLegacyIconsToDatabase(): Promise<void> {
   const gameRepo = AppDataSource.getRepository(Game);
   const userIconRepo = AppDataSource.getRepository(UserGameIcon);
 
-  const [baseCount, overrideCount] = await Promise.all([
-    gameRepo.countBy({ iconPath: normalized }),
-    userIconRepo.countBy({ iconPath: normalized })
-  ]);
+  const gamesWithLegacyIcons = await gameRepo
+    .createQueryBuilder('game')
+    .where("game.iconPath LIKE 'icons/%'")
+    .getMany();
 
-  if (baseCount > 0 || overrideCount > 0) {
-    return;
-  }
-
-  const absolutePath = resolveIconAbsolutePath(normalized);
-  if (!absolutePath) {
-    return;
-  }
-
-  const relative = normalized.slice('icons/'.length);
-  for (const root of getReadableIconRoots()) {
-    const candidate = path.join(root, relative);
-    if (!fs.existsSync(candidate)) continue;
-
-    try {
-      fs.unlinkSync(candidate);
-    } catch {
+  for (const game of gamesWithLegacyIcons) {
+    if (!game.iconPath) {
+      continue;
     }
-  }
-}
 
-function getPrimaryIconsRoot(): string {
-  return path.join(process.cwd(), 'public', 'icons');
-}
-
-function getReadableIconRoots(): string[] {
-  const roots = [
-    getPrimaryIconsRoot(),
-    path.join(process.cwd(), 'dist', 'icons'),
-    path.join(__dirname, '../../dist/icons')
-  ];
-
-  return Array.from(new Set(roots.map(root => path.normalize(root))));
-}
-
-function getWritableIconRoots(): string[] {
-  const roots = [getPrimaryIconsRoot()];
-  const mirrors = [
-    path.join(process.cwd(), 'dist', 'icons'),
-    path.join(__dirname, '../../dist/icons')
-  ];
-
-  for (const mirror of mirrors) {
-    if (fs.existsSync(path.dirname(mirror)) || fs.existsSync(mirror)) {
-      roots.push(mirror);
+    const migrated = await convertLegacyIconPathToDataUrl(game.iconPath);
+    if (!migrated) {
+      game.iconPath = null;
+      await gameRepo.save(game);
+      continue;
     }
+    game.iconPath = migrated;
+    await gameRepo.save(game);
   }
 
-  return Array.from(new Set(roots.map(root => path.normalize(root))));
+  const userOverridesWithLegacyIcons = await userIconRepo
+    .createQueryBuilder('icon')
+    .where("icon.iconPath LIKE 'icons/%'")
+    .getMany();
+
+  for (const override of userOverridesWithLegacyIcons) {
+    const migrated = await convertLegacyIconPathToDataUrl(override.iconPath);
+    if (!migrated) {
+      await userIconRepo.delete({ userId: override.userId, gameId: override.gameId });
+      continue;
+    }
+    override.iconPath = migrated;
+    await userIconRepo.save(override);
+  }
 }

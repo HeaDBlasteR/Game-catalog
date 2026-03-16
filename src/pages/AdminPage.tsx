@@ -261,7 +261,7 @@ const AdminPage: React.FC = () => {
                   <button className="btn btn-light" type="button" onClick={handleUploadBaseIcon}>Загрузить с ПК</button>
                   <button className="btn btn-light" type="button" onClick={handleClearBaseIcon}>Убрать</button>
                 </div>
-                <p>{formData.iconPath ? `Выбрано: ${formData.iconPath}` : 'Иконка не выбрана'}</p>
+                <p>{formData.iconPath ? 'Иконка выбрана' : 'Иконка не выбрана'}</p>
               </div>
 
               <label className="field-wrap field-full" htmlFor="description">
