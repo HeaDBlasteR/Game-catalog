@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { UserRating } from './UserRating';
 import { Genre } from './Genre';
+import { UserGameIcon } from './UserGameIcon';
 
 @Entity('games')
 export class Game {
@@ -37,6 +38,12 @@ export class Game {
   @Column()
   filePath!: string;
 
+  @Column({ type: 'text', nullable: true })
+  iconPath!: string | null;
+
   @OneToMany(() => UserRating, rating => rating.game)
   ratings!: UserRating[];
+
+  @OneToMany(() => UserGameIcon, userGameIcon => userGameIcon.game)
+  userIcons!: UserGameIcon[];
 }

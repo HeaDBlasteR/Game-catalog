@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import type { UserRole } from '../shared/types';
 import { UserRating } from './UserRating';
+import { UserGameIcon } from './UserGameIcon';
 import * as bcrypt from 'bcrypt';
 
 
@@ -25,6 +26,9 @@ export class User {
 
   @OneToMany(() => UserRating, rating => rating.user)
   ratings!: UserRating[];
+
+  @OneToMany(() => UserGameIcon, userGameIcon => userGameIcon.user)
+  gameIcons!: UserGameIcon[];
 
   async setPassword(password: string) {
     this.password = await bcrypt.hash(password, 10);

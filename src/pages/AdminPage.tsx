@@ -9,7 +9,8 @@ const emptyGameForm: GameInput = {
   genreIds: [],
   releaseDate: '',
   developer: '',
-  filePath: ''
+  filePath: '',
+  iconPath: ''
 };
 
 const AdminPage: React.FC = () => {
@@ -29,7 +30,10 @@ const AdminPage: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const [gamesData, genresData] = await Promise.all([window.electronAPI.getGames(), window.electronAPI.getGenres()]);
+      const [gamesData, genresData] = await Promise.all([
+        window.electronAPI.getGames(),
+        window.electronAPI.getGenres()
+      ]);
       setGames(gamesData);
       setGenres(genresData);
     } catch (err: any) {
@@ -49,6 +53,20 @@ const AdminPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleUploadBaseIcon = async () => {
+    try {
+      const uploadedIconPath = await window.electronAPI.uploadGameIconFromPC('admin');
+      if (!uploadedIconPath) return;
+      setFormData(prev => ({ ...prev, iconPath: uploadedIconPath }));
+    } catch (err: any) {
+      setMessage('Ошибка загрузки иконки: ' + err.message);
+    }
+  };
+
+  const handleClearBaseIcon = () => {
+    setFormData(prev => ({ ...prev, iconPath: '' }));
   };
 
   const handleGenreToggle = (genreId: number, checked: boolean) => {
@@ -78,7 +96,8 @@ const AdminPage: React.FC = () => {
       genreIds: game.genres.map(genre => genre.id),
       releaseDate: game.releaseDate,
       developer: game.developer,
-      filePath: game.filePath
+      filePath: game.filePath,
+      iconPath: game.iconPath || ''
     });
     setShowForm(true);
   };
@@ -235,6 +254,15 @@ const AdminPage: React.FC = () => {
                 <span>Путь к игре (exe)*</span>
                 <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
               </label>
+
+              <div className="field-wrap">
+                <span>Иконка (опционально)</span>
+                <div className="row-actions">
+                  <button className="btn btn-light" type="button" onClick={handleUploadBaseIcon}>Загрузить с ПК</button>
+                  <button className="btn btn-light" type="button" onClick={handleClearBaseIcon}>Убрать</button>
+                </div>
+                <p>{formData.iconPath ? `Выбрано: ${formData.iconPath}` : 'Иконка не выбрана'}</p>
+              </div>
 
               <label className="field-wrap field-full" htmlFor="description">
                 <span>Описание</span>

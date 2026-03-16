@@ -23,6 +23,7 @@ export interface Game {
   averageRating: number;
   totalRatings: number;
   filePath: string;
+  iconPath: string | null;
 }
 
 export interface GameInput {
@@ -32,6 +33,7 @@ export interface GameInput {
   releaseDate: string;
   developer: string;
   filePath: string;
+  iconPath?: string | null;
 }
 
 export interface GameUpdateInput extends Partial<Omit<GameInput, 'genreIds'>> {

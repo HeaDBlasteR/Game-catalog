@@ -17,11 +17,14 @@ const CatalogPage: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user?.id]);
 
   const fetchData = async () => {
     try {
-      const [gamesData, genresData] = await Promise.all([window.electronAPI.getGames(), window.electronAPI.getGenres()]);
+      const [gamesData, genresData] = await Promise.all([
+        window.electronAPI.getGames(user?.id),
+        window.electronAPI.getGenres()
+      ]);
       setGames(gamesData);
       setGenres(genresData);
     } catch (err) {
@@ -33,12 +36,22 @@ const CatalogPage: React.FC = () => {
 
   const fetchGames = async () => {
     try {
-      const data = await window.electronAPI.getGames();
+      const data = await window.electronAPI.getGames(user?.id);
       setGames(data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetGameIcon = async (gameId: number, iconPath: string | null) => {
+    if (!user) return;
+    try {
+      await window.electronAPI.setUserGameIcon(user.id, gameId, iconPath);
+      await fetchGames();
+    } catch (err) {
+      alert('Ошибка сохранения иконки');
     }
   };
 
@@ -145,6 +158,8 @@ const CatalogPage: React.FC = () => {
               onLaunch={handleLaunch}
               onRateClick={handleRateClick}
               canRate={user?.role !== 'admin'}
+              canChangeIcon={user?.role !== 'admin'}
+              onIconChange={handleSetGameIcon}
             />
           ))}
         </div>

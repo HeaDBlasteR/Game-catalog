@@ -4,8 +4,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
   register: (username: string, password: string) => ipcRenderer.invoke('auth:register', username, password),
 
-  getGames: () => ipcRenderer.invoke('games:getAll'),
-  getGame: (id: number) => ipcRenderer.invoke('games:get', id),
+  getGames: (userId?: number) => ipcRenderer.invoke('games:getAll', userId),
+  getGame: (id: number, userId?: number) => ipcRenderer.invoke('games:get', id, userId),
+  uploadGameIconFromPC: (scope: 'admin' | 'user', userId?: number) => ipcRenderer.invoke('games:uploadIconFromPC', scope, userId),
+  setUserGameIcon: (userId: number, gameId: number, iconPath: string | null) => ipcRenderer.invoke('games:setUserIcon', userId, gameId, iconPath),
   getGenres: () => ipcRenderer.invoke('genres:getAll'),
   launchGame: (gameId: number, userId: number) => ipcRenderer.invoke('games:launch', gameId, userId),
 
