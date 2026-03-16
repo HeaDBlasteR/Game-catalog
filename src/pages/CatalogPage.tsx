@@ -47,7 +47,7 @@ const CatalogPage: React.FC = () => {
     try {
       await window.electronAPI.launchGame(gameId, user.id);
       const game = games.find(g => g.id === gameId);
-      if (game) {
+      if (game && user.role !== 'admin') {
         setRatingGame(game);
         setShowRatingModal(true);
       }
@@ -57,6 +57,10 @@ const CatalogPage: React.FC = () => {
   };
 
   const handleRateClick = (gameId: number) => {
+    if (user?.role === 'admin') {
+      return;
+    }
+
     const game = games.find(g => g.id === gameId);
     if (game) {
       setRatingGame(game);
@@ -140,12 +144,13 @@ const CatalogPage: React.FC = () => {
               game={game}
               onLaunch={handleLaunch}
               onRateClick={handleRateClick}
+              canRate={user?.role !== 'admin'}
             />
           ))}
         </div>
       )}
 
-      {showRatingModal && ratingGame && (
+      {showRatingModal && ratingGame && user?.role !== 'admin' && (
         <RatingModal
           gameTitle={ratingGame.title}
           onSave={handleSaveRating}

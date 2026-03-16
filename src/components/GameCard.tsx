@@ -6,9 +6,10 @@ interface GameCardProps {
   game: Game;
   onLaunch: (gameId: number) => void;
   onRateClick: (gameId: number) => void;
+  canRate: boolean;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, onLaunch, onRateClick }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, onLaunch, onRateClick, canRate }) => {
   const { user } = useAuth();
   const [userRating, setUserRating] = useState<number | null>(null);
 
@@ -36,9 +37,11 @@ const GameCard: React.FC<GameCardProps> = ({ game, onLaunch, onRateClick }) => {
       <p><strong>Оценок:</strong> {game.totalRatings}</p>
       <div className="game-card-actions">
         <button onClick={() => onLaunch(game.id)}>Запустить игру</button>
-        <button onClick={() => onRateClick(game.id)} className="rate-button">
-          {userRating ? '⭐' : '☆'}
-        </button>
+        {canRate && (
+          <button onClick={() => onRateClick(game.id)} className="rate-button">
+            {userRating ? '⭐' : '☆'}
+          </button>
+        )}
       </div>
     </div>
   );
