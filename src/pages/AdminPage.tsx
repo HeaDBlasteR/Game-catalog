@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Game, Genre, GameInput } from '../shared/types';
+import DashboardLayout from '../components/DashboardLayout.tsx';
 
 const emptyGameForm: GameInput = {
   title: '',
@@ -20,6 +21,7 @@ const AdminPage: React.FC = () => {
   const [formData, setFormData] = useState<GameInput>(emptyGameForm);
   const [genreForm, setGenreForm] = useState({ name: '', description: '' });
   const [message, setMessage] = useState('');
+  const [gameSearch, setGameSearch] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -152,138 +154,204 @@ const AdminPage: React.FC = () => {
   };
 
   if (!user || user.role !== 'admin') {
-    return <div>Доступ запрещен</div>;
+    return (
+      <DashboardLayout title="Админ-панель" subtitle="Управление каталогом и жанрами">
+        <div className="panel-card">Доступ запрещен</div>
+      </DashboardLayout>
+    );
   }
 
+  const totalRatings = games.reduce((acc, game) => acc + game.totalRatings, 0);
+  const avgAcrossGames = games.length
+    ? (games.reduce((acc, game) => acc + game.averageRating, 0) / games.length).toFixed(2)
+    : '0.00';
+
+  const filteredGames = games.filter(game => game.title.toLowerCase().includes(gameSearch.toLowerCase()));
+
   return (
-    <div className="page-container">
-      <h1>Управление играми</h1>
-      {message && <p>{message}</p>}
-
-      <section className="admin-genres-section">
-        <h2>Жанры</h2>
-        <form onSubmit={handleGenreSubmit} className="admin-form">
-          <div>
-            <label htmlFor="genreName">Название жанра*:</label>
-            <input
-              id="genreName"
-              name="name"
-              value={genreForm.name}
-              onChange={e => setGenreForm({ ...genreForm, name: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="genreDescription">Описание:</label>
-            <textarea
-              id="genreDescription"
-              name="description"
-              value={genreForm.description}
-              onChange={e => setGenreForm({ ...genreForm, description: e.target.value })}
-            />
-          </div>
-          <div className="admin-form-actions">
-            <button type="submit">Добавить жанр</button>
-          </div>
-        </form>
-
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Название</th>
-              <th>Описание</th>
-              <th>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {genres.map(genre => (
-              <tr key={genre.id}>
-                <td>{genre.name}</td>
-                <td>{genre.description || '-'}</td>
-                <td>
-                  <button onClick={() => handleGenreDelete(genre.id)}>Удалить</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      <button onClick={() => setShowForm(!showForm)}>
-        {showForm ? 'Закрыть' : 'Добавить игру'}
-      </button>
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="admin-form">
-          <h2>{editingGame ? 'Редактировать игру' : 'Добавить игру'}</h2>
-          <div>
-            <label htmlFor="title">Название*:</label>
-            <input id="title" name="title" value={formData.title} onChange={handleInputChange} required />
-          </div>
-          <div>
-            <label htmlFor="description">Описание:</label>
-            <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} />
-          </div>
-          <div>
-            <label>Жанры*:</label>
-            <div className="genre-checkboxes" role="group" aria-label="Жанры">
-              {genres.map(genre => (
-                <label key={genre.id} className="genre-checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={formData.genreIds.includes(genre.id)}
-                    onChange={e => handleGenreToggle(genre.id, e.target.checked)}
-                  />
-                  <span>{genre.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label htmlFor="releaseDate">Дата релиза*:</label>
-            <input id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
-          </div>
-          <div>
-            <label htmlFor="developer">Разработчик*:</label>
-            <input id="developer" name="developer" value={formData.developer} onChange={handleInputChange} required />
-          </div>
-          <div>
-            <label htmlFor="filePath">Путь к игре (exe)*:</label>
-            <input id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
-          </div>
-          <div className="admin-form-actions">
-            <button type="submit">Сохранить</button>
-            <button type="button" onClick={resetForm}>Отмена</button>
-          </div>
-        </form>
+    <DashboardLayout title="Админ-панель" subtitle="Управление каталогом и жанрами">
+      {message && (
+        <div className="panel-card panel-card-soft" role="status" aria-live="polite">
+          {message}
+        </div>
       )}
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Название</th>
-            <th>Жанры</th>
-            <th>Рейтинг</th>
-            <th>Оценок</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          {games.map(game => (
-            <tr key={game.id}>
-              <td>{game.title}</td>
-              <td>{game.genres.map(genre => genre.name).join(', ') || '-'}</td>
-              <td>{game.averageRating.toFixed(1)} ★</td>
-              <td>{game.totalRatings}</td>
-              <td>
-                <button onClick={() => handleEdit(game)}>Редактировать</button>
-                <button onClick={() => handleDelete(game.id)}>Удалить</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      <section className="stats-grid">
+        <article className="metric-card">
+          <h3>Игр в каталоге</h3>
+          <p>{games.length}</p>
+        </article>
+        <article className="metric-card">
+          <h3>Жанров</h3>
+          <p>{genres.length}</p>
+        </article>
+        <article className="metric-card">
+          <h3>Средний рейтинг</h3>
+          <p>{avgAcrossGames}</p>
+        </article>
+        <article className="metric-card">
+          <h3>Всего оценок</h3>
+          <p>{totalRatings}</p>
+        </article>
+      </section>
+
+      <section className="panel-card">
+        <div className="panel-header">
+          <h2>Управление играми</h2>
+          <div className="panel-actions">
+            <input
+              className="input"
+              type="text"
+              placeholder="Поиск игры"
+              value={gameSearch}
+              onChange={e => setGameSearch(e.target.value)}
+            />
+            <button className="btn" onClick={() => setShowForm(!showForm)}>
+              {showForm ? 'Закрыть форму' : 'Добавить игру'}
+            </button>
+          </div>
+        </div>
+
+        {showForm && (
+          <form onSubmit={handleSubmit} className="admin-form">
+            <h3>{editingGame ? 'Редактировать игру' : 'Добавить игру'}</h3>
+            <div className="form-grid">
+              <label className="field-wrap" htmlFor="title">
+                <span>Название*</span>
+                <input className="input" id="title" name="title" value={formData.title} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="developer">
+                <span>Разработчик*</span>
+                <input className="input" id="developer" name="developer" value={formData.developer} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="releaseDate">
+                <span>Дата релиза*</span>
+                <input className="input" id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="filePath">
+                <span>Путь к игре (exe)*</span>
+                <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap field-full" htmlFor="description">
+                <span>Описание</span>
+                <textarea className="input" id="description" name="description" value={formData.description} onChange={handleInputChange} />
+              </label>
+
+              <div className="field-wrap field-full">
+                <span>Жанры*</span>
+                <div className="genre-checkboxes" role="group" aria-label="Жанры">
+                  {genres.map(genre => (
+                    <label key={genre.id} className="genre-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={formData.genreIds.includes(genre.id)}
+                        onChange={e => handleGenreToggle(genre.id, e.target.checked)}
+                      />
+                      <span>{genre.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-form-actions">
+              <button className="btn" type="submit">Сохранить</button>
+              <button className="btn btn-light" type="button" onClick={resetForm}>Отмена</button>
+            </div>
+          </form>
+        )}
+
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Название</th>
+                <th>Жанры</th>
+                <th>Рейтинг</th>
+                <th>Оценок</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredGames.map(game => (
+                <tr key={game.id}>
+                  <td>{game.title}</td>
+                  <td>{game.genres.map(genre => genre.name).join(', ') || '-'}</td>
+                  <td>{game.averageRating.toFixed(1)} ★</td>
+                  <td>{game.totalRatings}</td>
+                  <td className="row-actions">
+                    <button className="btn btn-light" onClick={() => handleEdit(game)}>Редактировать</button>
+                    <button className="btn btn-danger" onClick={() => handleDelete(game.id)}>Удалить</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel-card">
+        <div className="panel-header">
+          <h2>Жанры</h2>
+        </div>
+
+        <form onSubmit={handleGenreSubmit} className="admin-form compact-form">
+          <div className="form-grid">
+            <label className="field-wrap" htmlFor="genreName">
+              <span>Название жанра*</span>
+              <input
+                className="input"
+                id="genreName"
+                name="name"
+                value={genreForm.name}
+                onChange={e => setGenreForm({ ...genreForm, name: e.target.value })}
+                required
+              />
+            </label>
+            <label className="field-wrap" htmlFor="genreDescription">
+              <span>Описание</span>
+              <input
+                className="input"
+                id="genreDescription"
+                name="description"
+                value={genreForm.description}
+                onChange={e => setGenreForm({ ...genreForm, description: e.target.value })}
+              />
+            </label>
+          </div>
+          <div className="admin-form-actions">
+            <button className="btn" type="submit">Добавить жанр</button>
+          </div>
+        </form>
+
+        <div className="table-wrap">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {genres.map(genre => (
+                <tr key={genre.id}>
+                  <td>{genre.name}</td>
+                  <td>{genre.description || '-'}</td>
+                  <td className="row-actions">
+                    <button className="btn btn-danger" onClick={() => handleGenreDelete(genre.id)}>Удалить</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </DashboardLayout>
   );
 };
 

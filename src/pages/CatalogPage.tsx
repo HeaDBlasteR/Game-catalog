@@ -3,11 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
 import { Game, Genre } from '../shared/types';
-import { useNavigate } from 'react-router-dom';
+import DashboardLayout from '../components/DashboardLayout.tsx';
 
 const CatalogPage: React.FC = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [games, setGames] = useState<Game[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
   const [search, setSearch] = useState('');
@@ -83,38 +82,69 @@ const CatalogPage: React.FC = () => {
     return matchesSearch && matchesGenre;
   });
 
-  if (loading) return <div>Загрузка...</div>;
+  if (loading) {
+    return (
+      <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
+        <div className="panel-card">Загрузка...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <div className="page-container">
-      <h1>Каталог игр</h1>
-      {user?.role === 'admin' && (
-        <div className="admin-shortcut">
-          <button onClick={() => navigate('/admin')}>Перейти в админ-панель</button>
+    <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
+      <div className="toolbar-card">
+        <div className="toolbar-grid">
+          <label className="field-wrap" htmlFor="searchGame">
+            <span>Поиск</span>
+            <input
+              id="searchGame"
+              className="input"
+              type="text"
+              placeholder="Поиск по названию"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </label>
+
+          <label className="field-wrap" htmlFor="genreFilter">
+            <span>Жанр</span>
+            <select
+              id="genreFilter"
+              className="input"
+              aria-label="Фильтр по жанру"
+              value={genreFilter}
+              onChange={e => setGenreFilter(e.target.value)}
+            >
+              <option value="Все">Все</option>
+              {genres.map(genre => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
+            </select>
+          </label>
+
+          <div className="field-wrap stats-inline" aria-live="polite">
+            <span>Найдено</span>
+            <strong>{filteredGames.length}</strong>
+          </div>
+        </div>
+      </div>
+
+      {!filteredGames.length ? (
+        <div className="empty-state">
+          <h3>Ничего не найдено</h3>
+          <p>Попробуйте изменить поисковый запрос или выбрать другой жанр.</p>
+        </div>
+      ) : (
+        <div className="games-grid">
+          {filteredGames.map(game => (
+            <GameCard
+              key={game.id}
+              game={game}
+              onLaunch={handleLaunch}
+              onRateClick={handleRateClick}
+            />
+          ))}
         </div>
       )}
-      <div className="filters-row">
-        <input
-          type="text"
-          placeholder="Поиск по названию"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        <select aria-label="Фильтр по жанру" value={genreFilter} onChange={e => setGenreFilter(e.target.value)}>
-          <option value="Все">Все</option>
-          {genres.map(genre => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
-        </select>
-      </div>
-      <div className="games-grid">
-        {filteredGames.map(game => (
-          <GameCard
-            key={game.id}
-            game={game}
-            onLaunch={handleLaunch}
-            onRateClick={handleRateClick}
-          />
-        ))}
-      </div>
+
       {showRatingModal && ratingGame && (
         <RatingModal
           gameTitle={ratingGame.title}
@@ -122,7 +152,7 @@ const CatalogPage: React.FC = () => {
           onClose={() => setShowRatingModal(false)}
         />
       )}
-    </div>
+    </DashboardLayout>
   );
 };
 
