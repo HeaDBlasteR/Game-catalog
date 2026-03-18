@@ -4,11 +4,25 @@ type AppUser = {
   id: number;
   username: string;
   role: 'admin' | 'user';
+  displayName: string | null;
+  email: string | null;
+  phone: string | null;
+  iconPath: string | null;
+};
+
+type ProfileUpdateInput = {
+  displayName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  iconPath?: string | null;
 };
 
 type ElectronAPI = {
   login: (username: string, password: string) => Promise<AppUser>;
   register: (username: string, password: string) => Promise<AppUser>;
+  getProfile: (userId: number) => Promise<AppUser>;
+  uploadProfileIconFromPC: (userId: number) => Promise<string | null>;
+  updateProfile: (userId: number, profileData: ProfileUpdateInput) => Promise<AppUser>;
 
   getGames: (userId?: number) => Promise<Game[]>;
   getGame: (id: number, userId?: number) => Promise<Game | null>;
@@ -24,6 +38,7 @@ type ElectronAPI = {
   updateGame: (id: number, updates: GameInput, adminUserId: number) => Promise<{ success: true }>;
   deleteGame: (id: number, adminUserId: number) => Promise<{ success: true }>;
   addGenre: (genreData: { name: string; description: string }, adminUserId: number) => Promise<Genre>;
+  updateGenre: (id: number, genreData: { name: string; description: string }, adminUserId: number) => Promise<Genre>;
   deleteGenre: (id: number, adminUserId: number) => Promise<{ success: true }>;
 };
 

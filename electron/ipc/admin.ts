@@ -49,6 +49,15 @@ export function registerAdminHandlers() {
     }
   });
 
+  ipcMain.handle('admin:updateGenre', async (event, id: number, genreData, adminUserId: number) => {
+    try {
+      if (!await checkAdmin(adminUserId)) throw new Error('Access denied');
+      return await genreDb.update(id, genreData.name, genreData.description);
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
   ipcMain.handle('admin:deleteGenre', async (event, id: number, adminUserId: number) => {
     try {
       if (!await checkAdmin(adminUserId)) throw new Error('Access denied');

@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
   register: (username: string, password: string) => ipcRenderer.invoke('auth:register', username, password),
+  getProfile: (userId: number) => ipcRenderer.invoke('auth:getProfile', userId),
+  uploadProfileIconFromPC: (userId: number) => ipcRenderer.invoke('auth:uploadProfileIconFromPC', userId),
+  updateProfile: (userId: number, profileData: any) => ipcRenderer.invoke('auth:updateProfile', userId, profileData),
 
   getGames: (userId?: number) => ipcRenderer.invoke('games:getAll', userId),
   getGame: (id: number, userId?: number) => ipcRenderer.invoke('games:get', id, userId),
@@ -18,5 +21,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   updateGame: (id: number, updates: any, adminUserId: number) => ipcRenderer.invoke('admin:updateGame', id, updates, adminUserId),
   deleteGame: (id: number, adminUserId: number) => ipcRenderer.invoke('admin:deleteGame', id, adminUserId),
   addGenre: (genreData: { name: string; description: string }, adminUserId: number) => ipcRenderer.invoke('admin:addGenre', genreData, adminUserId),
+  updateGenre: (id: number, genreData: { name: string; description: string }, adminUserId: number) => ipcRenderer.invoke('admin:updateGenre', id, genreData, adminUserId),
   deleteGenre: (id: number, adminUserId: number) => ipcRenderer.invoke('admin:deleteGenre', id, adminUserId),
 });

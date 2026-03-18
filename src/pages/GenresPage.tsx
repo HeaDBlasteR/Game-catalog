@@ -5,10 +5,23 @@ import { Genre } from '../shared/types';
 import NoticeBanner from '../components/NoticeBanner';
 import { NoticeState, toUserErrorMessage } from '../shared/feedback';
 
+type GenreFormState = {
+  name: string;
+  description: string;
+};
+
+const EMPTY_GENRE_FORM: GenreFormState = {
+  name: '',
+  description: ''
+};
+
 const GenresPage: React.FC = () => {
   const { user } = useAuth();
   const [genres, setGenres] = useState<Genre[]>([]);
-  const [genreForm, setGenreForm] = useState({ name: '', description: '' });
+  const [createForm, setCreateForm] = useState<GenreFormState>(EMPTY_GENRE_FORM);
+  const [editForm, setEditForm] = useState<GenreFormState>(EMPTY_GENRE_FORM);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingGenre, setEditingGenre] = useState<Genre | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
@@ -27,15 +40,38 @@ const GenresPage: React.FC = () => {
     }
   };
 
-  const handleGenreSubmit = async (e: React.FormEvent) => {
+  const handleCreateModalOpen = () => {
+    setCreateForm(EMPTY_GENRE_FORM);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleCreateModalClose = () => {
+    setIsCreateModalOpen(false);
+    setCreateForm(EMPTY_GENRE_FORM);
+  };
+
+  const handleEditModalOpen = (genre: Genre) => {
+    setEditingGenre(genre);
+    setEditForm({
+      name: genre.name,
+      description: genre.description ?? ''
+    });
+  };
+
+  const handleEditModalClose = () => {
+    setEditingGenre(null);
+    setEditForm(EMPTY_GENRE_FORM);
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     try {
-      await window.electronAPI.addGenre(genreForm, user.id);
-      setGenreForm({ name: '', description: '' });
+      await window.electronAPI.addGenre(createForm, user.id);
+      handleCreateModalClose();
       setNotice({ type: 'success', text: 'Жанр добавлен.' });
-      fetchGenres();
+      await fetchGenres();
     } catch (err: any) {
       setNotice({
         type: 'error',
@@ -44,14 +80,33 @@ const GenresPage: React.FC = () => {
     }
   };
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !editingGenre) return;
+
+    try {
+      await window.electronAPI.updateGenre(editingGenre.id, editForm, user.id);
+      handleEditModalClose();
+      setNotice({ type: 'success', text: 'Жанр обновлен.' });
+      await fetchGenres();
+    } catch (err: any) {
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось обновить жанр.')
+      });
+    }
+  };
+
   const handleGenreDelete = async (id: number) => {
     if (!user) return;
-    if (!confirm('Удалить жанр?')) return;
+
+    const shouldDelete = window.confirm('Удалить жанр? Это действие нельзя отменить.');
+    if (!shouldDelete) return;
 
     try {
       await window.electronAPI.deleteGenre(id, user.id);
       setNotice({ type: 'success', text: 'Жанр удален.' });
-      fetchGenres();
+      await fetchGenres();
     } catch (err: any) {
       setNotice({
         type: 'error',
@@ -62,49 +117,21 @@ const GenresPage: React.FC = () => {
 
   if (!user || user.role !== 'admin') {
     return (
-      <DashboardLayout title="Жанры" subtitle="Создание и удаление жанров">
+      <DashboardLayout title="Жанры" subtitle="Создание, редактирование и удаление жанров">
         <div className="panel-card">Доступ запрещен</div>
       </DashboardLayout>
     );
   }
 
   return (
-    <DashboardLayout title="Жанры" subtitle="Создание и удаление жанров">
-      {notice && <NoticeBanner notice={notice} />}
+    <DashboardLayout title="Жанры" subtitle="Создание, редактирование и удаление жанров">
+      {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
       <section className="panel-card">
         <div className="panel-header">
           <h2>Управление жанрами</h2>
+          <button className="btn" type="button" onClick={handleCreateModalOpen}>Создать жанр</button>
         </div>
-
-        <form onSubmit={handleGenreSubmit} className="admin-form compact-form">
-          <div className="form-grid">
-            <label className="field-wrap" htmlFor="genreName">
-              <span>Название жанра*</span>
-              <input
-                className="input"
-                id="genreName"
-                name="name"
-                value={genreForm.name}
-                onChange={e => setGenreForm({ ...genreForm, name: e.target.value })}
-                required
-              />
-            </label>
-            <label className="field-wrap" htmlFor="genreDescription">
-              <span>Описание</span>
-              <input
-                className="input"
-                id="genreDescription"
-                name="description"
-                value={genreForm.description}
-                onChange={e => setGenreForm({ ...genreForm, description: e.target.value })}
-              />
-            </label>
-          </div>
-          <div className="admin-form-actions">
-            <button className="btn" type="submit">Добавить жанр</button>
-          </div>
-        </form>
 
         <div className="table-wrap">
           <table className="admin-table">
@@ -121,6 +148,7 @@ const GenresPage: React.FC = () => {
                   <td>{genre.name}</td>
                   <td>{genre.description || '-'}</td>
                   <td className="row-actions">
+                    <button className="btn btn-light" type="button" onClick={() => handleEditModalOpen(genre)}>Редактировать</button>
                     <button className="btn btn-danger" onClick={() => handleGenreDelete(genre.id)}>Удалить</button>
                   </td>
                 </tr>
@@ -129,6 +157,80 @@ const GenresPage: React.FC = () => {
           </table>
         </div>
       </section>
+
+      {isCreateModalOpen && (
+        <div className="rating-modal-overlay" role="presentation">
+          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label="Создание жанра">
+            <h2>Создать жанр</h2>
+            <form onSubmit={handleCreateSubmit} className="admin-form compact-form">
+              <div className="form-grid">
+                <label className="field-wrap" htmlFor="genreCreateName">
+                  <span>Название жанра*</span>
+                  <input
+                    className="input"
+                    id="genreCreateName"
+                    name="name"
+                    value={createForm.name}
+                    onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="field-wrap" htmlFor="genreCreateDescription">
+                  <span>Описание</span>
+                  <input
+                    className="input"
+                    id="genreCreateDescription"
+                    name="description"
+                    value={createForm.description}
+                    onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button className="btn" type="submit">Сохранить</button>
+                <button className="btn btn-light" type="button" onClick={handleCreateModalClose}>Отмена</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingGenre && (
+        <div className="rating-modal-overlay" role="presentation">
+          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label="Редактирование жанра">
+            <h2>Редактировать жанр</h2>
+            <form onSubmit={handleEditSubmit} className="admin-form compact-form">
+              <div className="form-grid">
+                <label className="field-wrap" htmlFor="genreEditName">
+                  <span>Название жанра*</span>
+                  <input
+                    className="input"
+                    id="genreEditName"
+                    name="name"
+                    value={editForm.name}
+                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                    required
+                  />
+                </label>
+                <label className="field-wrap" htmlFor="genreEditDescription">
+                  <span>Описание</span>
+                  <input
+                    className="input"
+                    id="genreEditDescription"
+                    name="description"
+                    value={editForm.description}
+                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="modal-actions">
+                <button className="btn" type="submit">Сохранить</button>
+                <button className="btn btn-light" type="button" onClick={handleEditModalClose}>Отмена</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

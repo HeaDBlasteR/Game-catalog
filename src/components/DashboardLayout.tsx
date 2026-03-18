@@ -12,6 +12,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const displayName = user?.displayName?.trim() ? user.displayName : user?.username;
+  const roleLabel = user?.role === 'admin' ? 'Администратор' : 'Пользователь';
+  const userInitial = (displayName?.[0] ?? '?').toUpperCase();
 
   const handleLogout = () => {
     logout();
@@ -21,11 +24,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
   return (
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
-        <div className="brand-block">
-          <div className="brand-badge">GC</div>
-          <div>
-            <div className="brand-title">Game Catalog</div>
-            <div className="brand-subtitle">Control center</div>
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar-wrap" aria-hidden="true">
+            {user?.iconPath ? (
+              <img src={user.iconPath} alt="" className="sidebar-user-avatar" />
+            ) : (
+              <div className="sidebar-user-avatar sidebar-user-avatar-placeholder">{userInitial}</div>
+            )}
+          </div>
+          <div className="sidebar-user-meta">
+            <div className="sidebar-user-name">{displayName}</div>
+            <div className="sidebar-user-role">{roleLabel}</div>
           </div>
         </div>
 
@@ -52,7 +61,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
               </Link>
             </>
           )}
+          <Link
+            to="/profile"
+            className={location.pathname === '/profile' ? 'nav-link active' : 'nav-link'}
+          >
+            Профиль
+          </Link>
         </nav>
+
+        <div className="sidebar-footer">
+          <button className="btn btn-light sidebar-logout-btn" type="button" onClick={handleLogout}>Выйти</button>
+        </div>
       </aside>
 
       <main className="dashboard-main">
@@ -60,14 +79,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
           <div>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
-          </div>
-
-          <div className="topbar-actions">
-            <div className="user-chip">
-              <span className="status-dot" aria-hidden="true" />
-              {user?.username} ({user?.role})
-            </div>
-            <button className="btn btn-light" onClick={handleLogout}>Выйти</button>
           </div>
         </header>
 

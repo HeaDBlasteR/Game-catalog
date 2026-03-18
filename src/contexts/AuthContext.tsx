@@ -5,12 +5,17 @@ interface User {
   id: number;
   username: string;
   role: 'admin' | 'user';
+  displayName: string | null;
+  email: string | null;
+  phone: string | null;
+  iconPath: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<User>;
   register: (username: string, password: string) => Promise<User>;
+  updateUser: (nextUser: User) => void;
   logout: () => void;
 }
 
@@ -43,8 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = (nextUser: User) => {
+    setUser(nextUser);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, updateUser, logout }}>
       {children}
     </AuthContext.Provider>
   );

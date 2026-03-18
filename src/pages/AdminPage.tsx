@@ -170,7 +170,7 @@ const AdminPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Админ-панель" subtitle="Управление каталогом и жанрами">
-      {notice && <NoticeBanner notice={notice} />}
+      {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
       <section className="stats-grid">
         <article className="metric-card">

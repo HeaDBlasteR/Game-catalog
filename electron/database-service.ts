@@ -190,6 +190,22 @@ export const genreDb = {
     });
     return repo.save(genre);
   },
+  update: async (id: number, name: string, description: string = ''): Promise<Genre> => {
+    const repo = AppDataSource.getRepository(Genre);
+    const genre = await repo.findOneBy({ id });
+    if (!genre) throw new Error('Жанр не найден');
+
+    const normalizedName = name.trim();
+    if (!normalizedName) throw new Error('Название жанра обязательно');
+
+    const exists = await repo.findOneBy({ name: normalizedName });
+    if (exists && exists.id !== id) throw new Error('Жанр с таким названием уже существует');
+
+    genre.name = normalizedName;
+    genre.description = description.trim();
+
+    return repo.save(genre);
+  },
   delete: async (id: number): Promise<void> => {
     await AppDataSource.transaction(async manager => {
       const genreRepo = manager.getRepository(Genre);

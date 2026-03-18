@@ -142,7 +142,7 @@ const CatalogPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
-      {notice && <NoticeBanner notice={notice} />}
+      {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
       <div className="toolbar-card">
         <div className="toolbar-grid">
@@ -171,11 +171,6 @@ const CatalogPage: React.FC = () => {
               {genres.map(genre => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
             </select>
           </label>
-
-          <div className="field-wrap stats-inline" aria-live="polite">
-            <span>Найдено</span>
-            <strong>{filteredGames.length}</strong>
-          </div>
         </div>
       </div>
 

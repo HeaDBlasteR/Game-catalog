@@ -24,6 +24,18 @@ export class User {
   })
   role!: UserRole;
 
+  @Column({ type: 'text', nullable: true })
+  displayName!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  email!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  phone!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  iconPath!: string | null;
+
   @OneToMany(() => UserRating, rating => rating.user)
   ratings!: UserRating[];
 
