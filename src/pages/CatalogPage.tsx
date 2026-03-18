@@ -2,10 +2,20 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
-import { Game, Genre } from '../shared/types';
+import { Game, Genre, GameInput } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import NoticeBanner from '../components/NoticeBanner';
 import { NoticeState, toUserErrorMessage } from '../shared/feedback';
+
+const emptyGameForm: GameInput = {
+  title: '',
+  description: '',
+  genreIds: [],
+  releaseDate: '',
+  developer: '',
+  filePath: '',
+  iconPath: ''
+};
 
 const CatalogPage: React.FC = () => {
   const { user } = useAuth();
@@ -13,10 +23,17 @@ const CatalogPage: React.FC = () => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState<string>('Все');
-  const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingGame, setRatingGame] = useState<Game | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [formData, setFormData] = useState<GameInput>(emptyGameForm);
+  const isAdmin = user?.role === 'admin';
+  const pageTitle = isAdmin ? 'Управление каталогом' : 'Каталог игр';
+  const pageSubtitle = isAdmin
+    ? 'Управление играми: создание, редактирование и удаление'
+    : 'Запуск, поиск и оценка игр в едином интерфейсе';
 
   useEffect(() => {
     fetchData();
@@ -35,8 +52,6 @@ const CatalogPage: React.FC = () => {
         type: 'error',
         text: toUserErrorMessage(err, 'Не удалось загрузить каталог. Попробуйте обновить страницу.')
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -49,8 +64,6 @@ const CatalogPage: React.FC = () => {
         type: 'error',
         text: toUserErrorMessage(err, 'Не удалось обновить список игр. Попробуйте еще раз.')
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -64,6 +77,113 @@ const CatalogPage: React.FC = () => {
       setNotice({
         type: 'error',
         text: toUserErrorMessage(err, 'Не удалось сохранить иконку игры.')
+      });
+    }
+  };
+
+  const handleUploadBaseIcon = async () => {
+    if (!isAdmin) return;
+    try {
+      const uploadedIconPath = await window.electronAPI.uploadGameIconFromPC('admin');
+      if (!uploadedIconPath) return;
+      setFormData(prev => ({ ...prev, iconPath: uploadedIconPath }));
+      setNotice({ type: 'success', text: 'Иконка игры загружена.' });
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось загрузить иконку игры.')
+      });
+    }
+  };
+
+  const handleClearBaseIcon = () => {
+    setFormData(prev => ({ ...prev, iconPath: '' }));
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleGenreToggle = (genreId: number, checked: boolean) => {
+    if (checked) {
+      if (formData.genreIds.includes(genreId)) return;
+      setFormData({ ...formData, genreIds: [...formData.genreIds, genreId] });
+      return;
+    }
+
+    setFormData({
+      ...formData,
+      genreIds: formData.genreIds.filter(id => id !== genreId)
+    });
+  };
+
+  const resetForm = () => {
+    setFormData(emptyGameForm);
+    setEditingGame(null);
+    setShowForm(false);
+  };
+
+  const handleStartCreate = () => {
+    setEditingGame(null);
+    setFormData(emptyGameForm);
+    setShowForm(true);
+  };
+
+  const handleEditGame = (game: Game) => {
+    if (!isAdmin) return;
+    setEditingGame(game);
+    setFormData({
+      title: game.title,
+      description: game.description || '',
+      genreIds: game.genres.map(genre => genre.id),
+      releaseDate: game.releaseDate,
+      developer: game.developer,
+      filePath: game.filePath,
+      iconPath: game.iconPath || ''
+    });
+    setShowForm(true);
+  };
+
+  const handleDeleteGame = async (gameId: number) => {
+    if (!user || !isAdmin) return;
+    if (!confirm('Удалить игру?')) return;
+
+    try {
+      await window.electronAPI.deleteGame(gameId, user.id);
+      await fetchGames();
+      setNotice({ type: 'success', text: 'Игра удалена.' });
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось удалить игру.')
+      });
+    }
+  };
+
+  const handleGameSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !isAdmin) return;
+
+    if (!formData.genreIds.length) {
+      setNotice({ type: 'error', text: 'Выберите хотя бы один жанр.' });
+      return;
+    }
+
+    try {
+      if (editingGame) {
+        await window.electronAPI.updateGame(editingGame.id, formData, user.id);
+        setNotice({ type: 'success', text: 'Игра обновлена.' });
+      } else {
+        await window.electronAPI.addGame(formData, user.id);
+        setNotice({ type: 'success', text: 'Игра добавлена.' });
+      }
+
+      await fetchGames();
+      resetForm();
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось сохранить игру.')
       });
     }
   };
@@ -110,7 +230,7 @@ const CatalogPage: React.FC = () => {
     }
   };
 
-  const handleSaveRating = async (rating: 1|2|3|4|5) => {
+  const handleSaveRating = async (rating: 1 | 2 | 3 | 4 | 5) => {
     if (!user || !ratingGame) return;
     try {
       await window.electronAPI.rateGame(user.id, ratingGame.id, rating);
@@ -132,20 +252,38 @@ const CatalogPage: React.FC = () => {
     return matchesSearch && matchesGenre;
   });
 
-  if (loading) {
-    return (
-      <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
-        <div className="panel-card">Загрузка...</div>
-      </DashboardLayout>
-    );
-  }
+  const totalRatings = games.reduce((acc, game) => acc + game.totalRatings, 0);
+  const avgAcrossGames = games.length
+    ? (games.reduce((acc, game) => acc + game.averageRating, 0) / games.length).toFixed(2)
+    : '0.00';
 
   return (
-    <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
+    <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
       {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
+      {isAdmin && (
+        <section className="stats-grid">
+          <article className="metric-card">
+            <h3>Игр в каталоге</h3>
+            <p>{games.length}</p>
+          </article>
+          <article className="metric-card">
+            <h3>Жанров</h3>
+            <p>{genres.length}</p>
+          </article>
+          <article className="metric-card">
+            <h3>Средний рейтинг</h3>
+            <p>{avgAcrossGames}</p>
+          </article>
+          <article className="metric-card">
+            <h3>Всего оценок</h3>
+            <p>{totalRatings}</p>
+          </article>
+        </section>
+      )}
+
       <div className="toolbar-card">
-        <div className="toolbar-grid">
+        <div className={isAdmin ? 'toolbar-grid toolbar-grid-admin' : 'toolbar-grid'}>
           <label className="field-wrap" htmlFor="searchGame">
             <span>Поиск</span>
             <input
@@ -171,8 +309,81 @@ const CatalogPage: React.FC = () => {
               {genres.map(genre => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
             </select>
           </label>
+
+          {isAdmin && (
+            <div className="field-wrap toolbar-action-wrap">
+              <span>&nbsp;</span>
+              <button className="btn" type="button" onClick={showForm ? resetForm : handleStartCreate}>
+                {showForm ? 'Закрыть' : 'Добавить игру'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {isAdmin && showForm && (
+        <section className="panel-card">
+          <form onSubmit={handleGameSubmit} className="admin-form">
+            <h3>{editingGame ? 'Редактировать игру' : 'Добавить игру'}</h3>
+            <div className="form-grid">
+              <label className="field-wrap" htmlFor="title">
+                <span>Название*</span>
+                <input className="input" id="title" name="title" value={formData.title} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="developer">
+                <span>Разработчик*</span>
+                <input className="input" id="developer" name="developer" value={formData.developer} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="releaseDate">
+                <span>Дата релиза*</span>
+                <input className="input" id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
+              </label>
+
+              <label className="field-wrap" htmlFor="filePath">
+                <span>Путь к игре (exe)*</span>
+                <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
+              </label>
+
+              <div className="field-wrap">
+                <span>Иконка (опционально)</span>
+                <div className="row-actions">
+                  <button className="btn btn-light" type="button" onClick={handleUploadBaseIcon}>Загрузить с ПК</button>
+                  <button className="btn btn-light" type="button" onClick={handleClearBaseIcon}>Убрать</button>
+                </div>
+                <p>{formData.iconPath ? 'Иконка выбрана' : 'Иконка не выбрана'}</p>
+              </div>
+
+              <label className="field-wrap field-full" htmlFor="description">
+                <span>Описание</span>
+                <textarea className="input" id="description" name="description" value={formData.description} onChange={handleInputChange} />
+              </label>
+
+              <div className="field-wrap field-full">
+                <span>Жанры*</span>
+                <div className="genre-checkboxes" role="group" aria-label="Жанры">
+                  {genres.map(genre => (
+                    <label key={genre.id} className="genre-checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={formData.genreIds.includes(genre.id)}
+                        onChange={e => handleGenreToggle(genre.id, e.target.checked)}
+                      />
+                      <span>{genre.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-form-actions">
+              <button className="btn" type="submit">Сохранить</button>
+              <button className="btn btn-light" type="button" onClick={resetForm}>Отмена</button>
+            </div>
+          </form>
+        </section>
+      )}
 
       {!filteredGames.length ? (
         <div className="empty-state">
@@ -190,6 +401,9 @@ const CatalogPage: React.FC = () => {
               canRate={user?.role !== 'admin'}
               canChangeIcon={user?.role !== 'admin'}
               onIconChange={handleSetGameIcon}
+              canManage={isAdmin}
+              onEdit={handleEditGame}
+              onDelete={handleDeleteGame}
             />
           ))}
         </div>

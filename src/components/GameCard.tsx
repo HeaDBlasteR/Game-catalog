@@ -9,6 +9,9 @@ interface GameCardProps {
   canRate: boolean;
   canChangeIcon: boolean;
   onIconChange: (gameId: number, iconPath: string | null) => Promise<void>;
+  canManage?: boolean;
+  onEdit?: (game: Game) => void;
+  onDelete?: (gameId: number) => void;
 }
 
 const GameCard: React.FC<GameCardProps> = ({
@@ -17,7 +20,10 @@ const GameCard: React.FC<GameCardProps> = ({
   onRateClick,
   canRate,
   canChangeIcon,
-  onIconChange
+  onIconChange,
+  canManage = false,
+  onEdit,
+  onDelete
 }) => {
   const { user } = useAuth();
   const [userRating, setUserRating] = useState<number | null>(null);
@@ -32,10 +38,10 @@ const GameCard: React.FC<GameCardProps> = ({
   }, [user, game.id]);
 
   const stars = (rating: number) => {
-    const full = Math.floor(rating);
-    const half = rating % 1 >= 0.5 ? 1 : 0;
-    const empty = 5 - full - half;
-    return '★'.repeat(full) + (half ? '½' : '') + '☆'.repeat(empty);
+    const rounded = Math.round(rating);
+    const full = Math.max(0, Math.min(5, rounded));
+    const empty = 5 - full;
+    return '★'.repeat(full) + '☆'.repeat(empty);
   };
 
   const handleUploadIcon = async () => {
@@ -95,6 +101,13 @@ const GameCard: React.FC<GameCardProps> = ({
           </button>
         )}
       </div>
+
+      {canManage && (
+        <div className="game-manage-actions">
+          <button className="btn btn-light btn-manage" type="button" onClick={() => onEdit?.(game)}>Редактировать</button>
+          <button className="btn btn-danger btn-manage" type="button" onClick={() => onDelete?.(game.id)}>Удалить</button>
+        </div>
+      )}
     </div>
   );
 };

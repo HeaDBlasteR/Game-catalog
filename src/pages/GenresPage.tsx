@@ -100,7 +100,7 @@ const GenresPage: React.FC = () => {
   const handleGenreDelete = async (id: number) => {
     if (!user) return;
 
-    const shouldDelete = window.confirm('Удалить жанр? Это действие нельзя отменить.');
+    const shouldDelete = window.confirm('Удалить жанр?');
     if (!shouldDelete) return;
 
     try {
@@ -116,11 +116,7 @@ const GenresPage: React.FC = () => {
   };
 
   if (!user || user.role !== 'admin') {
-    return (
-      <DashboardLayout title="Жанры" subtitle="Создание, редактирование и удаление жанров">
-        <div className="panel-card">Доступ запрещен</div>
-      </DashboardLayout>
-    );
+    return null;
   }
 
   return (

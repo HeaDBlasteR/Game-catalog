@@ -300,6 +300,18 @@ a:hover {
   gap: 12px;
 }
 
+.toolbar-grid-admin {
+  grid-template-columns: minmax(0, 1fr) 220px auto;
+}
+
+.toolbar-action-wrap {
+  align-self: end;
+}
+
+.toolbar-action-wrap .btn {
+  min-height: 42px;
+}
+
 .stats-inline {
   justify-content: center;
   border: 1px solid var(--border);
@@ -557,6 +569,38 @@ textarea.input {
   align-items: center;
   gap: 10px;
   width: 100%;
+}
+
+.game-manage-actions {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.btn-manage {
+  min-height: 40px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 18px rgba(28, 36, 52, 0.08);
+}
+
+.btn-manage.btn-light {
+  background: linear-gradient(135deg, #f4f7ff 0%, #e7eeff 100%);
+  border: 1px solid #d8e2ff;
+}
+
+.btn-manage.btn-light:hover {
+  background: linear-gradient(135deg, #eaf0ff 0%, #dbe6ff 100%);
+}
+
+.btn-manage.btn-danger {
+  background: linear-gradient(135deg, #e26460 0%, #ce4541 100%);
+}
+
+.btn-manage.btn-danger:hover {
+  background: linear-gradient(135deg, #d95a56 0%, #bf3a36 100%);
 }
 
 .launch-button {

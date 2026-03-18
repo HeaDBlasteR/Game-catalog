@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CatalogPage from './pages/CatalogPage';
-import AdminPage from './pages/AdminPage.tsx';
 import GenresPage from './pages/GenresPage.tsx';
 import ProfilePage from './pages/ProfilePage';
 
@@ -24,7 +23,7 @@ function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/catalog" element={<ProtectedRoute element={<CatalogPage />} />} />
-      <Route path="/admin" element={<AdminRoute element={<AdminPage />} />} />
+      <Route path="/admin" element={<Navigate to="/catalog" />} />
       <Route path="/genres" element={<AdminRoute element={<GenresPage />} />} />
       <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
       <Route path="/" element={<Navigate to="/catalog" />} />

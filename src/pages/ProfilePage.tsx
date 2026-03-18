@@ -95,11 +95,7 @@ const ProfilePage: React.FC = () => {
   };
 
   if (!user) {
-    return (
-      <DashboardLayout title="Профиль" subtitle="Персональные данные пользователя">
-        <div className="panel-card">Пользователь не найден.</div>
-      </DashboardLayout>
-    );
+    return null;
   }
 
   return (
