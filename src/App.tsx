@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CatalogPage from './pages/CatalogPage';
 import AdminPage from './pages/AdminPage.tsx';
+import GenresPage from './pages/GenresPage.tsx';
 
 const ProtectedRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ function AppRoutes() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/catalog" element={<ProtectedRoute element={<CatalogPage />} />} />
       <Route path="/admin" element={<AdminRoute element={<AdminPage />} />} />
+      <Route path="/genres" element={<AdminRoute element={<GenresPage />} />} />
       <Route path="/" element={<Navigate to="/catalog" />} />
       <Route path="*" element={<Navigate to="/catalog" />} />
     </Routes>

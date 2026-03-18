@@ -302,14 +302,6 @@ async function validateIconPath(iconPath?: string | null): Promise<string | null
     return validateDataUrlIcon(normalized);
   }
 
-  if (normalized.startsWith('icons/')) {
-    const migrated = await convertLegacyIconPathToDataUrl(normalized);
-    if (!migrated) {
-      throw new Error('Иконка не найдена для миграции в базу данных');
-    }
-    return migrated;
-  }
-
   throw new Error('Некорректный формат иконки');
 }
 
@@ -338,91 +330,4 @@ function validateDataUrlIcon(iconDataUrl: string): string {
 
 function buildIconDataUrl(buffer: Buffer, mimeType: string): string {
   return `data:${mimeType};base64,${buffer.toString('base64')}`;
-}
-
-async function convertLegacyIconPathToDataUrl(iconPath: string): Promise<string | null> {
-  const absolutePath = resolveLegacyIconAbsolutePath(iconPath);
-  if (!absolutePath || !fs.existsSync(absolutePath)) {
-    return null;
-  }
-
-  const extension = path.extname(absolutePath).toLowerCase();
-  const mimeType = ICON_EXTENSION_TO_MIME[extension];
-  if (!mimeType) {
-    return null;
-  }
-
-  const buffer = await fs.promises.readFile(absolutePath);
-  if (!buffer.length || buffer.length > ICON_UPLOAD_MAX_BYTES) {
-    return null;
-  }
-
-  return buildIconDataUrl(buffer, mimeType);
-}
-
-function resolveLegacyIconAbsolutePath(iconPath: string): string | null {
-  const normalized = sanitizeIconPath(iconPath);
-  if (!normalized || !normalized.startsWith('icons/')) {
-    return null;
-  }
-
-  const relative = normalized.slice('icons/'.length);
-  for (const root of getLegacyIconRoots()) {
-    const candidate = path.join(root, relative);
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
-
-  return null;
-}
-
-function getLegacyIconRoots(): string[] {
-  const roots = [
-    path.join(process.cwd(), 'public', 'icons'),
-    path.join(process.cwd(), 'dist', 'icons'),
-    path.join(__dirname, '../../dist/icons')
-  ];
-
-  return Array.from(new Set(roots.map(root => path.normalize(root))));
-}
-
-export async function migrateLegacyIconsToDatabase(): Promise<void> {
-  const gameRepo = AppDataSource.getRepository(Game);
-  const userIconRepo = AppDataSource.getRepository(UserGameIcon);
-
-  const gamesWithLegacyIcons = await gameRepo
-    .createQueryBuilder('game')
-    .where("game.iconPath LIKE 'icons/%'")
-    .getMany();
-
-  for (const game of gamesWithLegacyIcons) {
-    if (!game.iconPath) {
-      continue;
-    }
-
-    const migrated = await convertLegacyIconPathToDataUrl(game.iconPath);
-    if (!migrated) {
-      game.iconPath = null;
-      await gameRepo.save(game);
-      continue;
-    }
-    game.iconPath = migrated;
-    await gameRepo.save(game);
-  }
-
-  const userOverridesWithLegacyIcons = await userIconRepo
-    .createQueryBuilder('icon')
-    .where("icon.iconPath LIKE 'icons/%'")
-    .getMany();
-
-  for (const override of userOverridesWithLegacyIcons) {
-    const migrated = await convertLegacyIconPathToDataUrl(override.iconPath);
-    if (!migrated) {
-      await userIconRepo.delete({ userId: override.userId, gameId: override.gameId });
-      continue;
-    }
-    override.iconPath = migrated;
-    await userIconRepo.save(override);
-  }
 }

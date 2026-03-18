@@ -1,4 +1,5 @@
 import React, { createContext, useState, useContext } from 'react';
+import { toUserErrorMessage } from '../shared/feedback';
 
 interface User {
   id: number;
@@ -24,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       return userData;
     } catch (err: any) {
-      throw new Error(err.message);
+      throw new Error(toUserErrorMessage(err, 'Не удалось войти в систему.'));
     }
   };
 
@@ -34,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData);
       return userData;
     } catch (err: any) {
-      throw new Error(err.message);
+      throw new Error(toUserErrorMessage(err, 'Не удалось зарегистрироваться.'));
     }
   };
 

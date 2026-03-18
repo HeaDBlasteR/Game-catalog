@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Game, Genre, GameInput } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
+import NoticeBanner from '../components/NoticeBanner';
+import { NoticeState, toUserErrorMessage } from '../shared/feedback';
 
 const emptyGameForm: GameInput = {
   title: '',
@@ -20,8 +22,7 @@ const AdminPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState<GameInput>(emptyGameForm);
-  const [genreForm, setGenreForm] = useState({ name: '', description: '' });
-  const [message, setMessage] = useState('');
+  const [notice, setNotice] = useState<NoticeState | null>(null);
   const [gameSearch, setGameSearch] = useState('');
 
   useEffect(() => {
@@ -37,18 +38,23 @@ const AdminPage: React.FC = () => {
       setGames(gamesData);
       setGenres(genresData);
     } catch (err: any) {
-      setMessage('Ошибка загрузки данных: ' + err.message);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось загрузить данные админ-панели.')
+      });
     }
   };
 
   const fetchGames = async () => {
-    const data = await window.electronAPI.getGames();
-    setGames(data);
-  };
-
-  const fetchGenres = async () => {
-    const data = await window.electronAPI.getGenres();
-    setGenres(data);
+    try {
+      const data = await window.electronAPI.getGames();
+      setGames(data);
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось обновить список игр.')
+      });
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -60,8 +66,12 @@ const AdminPage: React.FC = () => {
       const uploadedIconPath = await window.electronAPI.uploadGameIconFromPC('admin');
       if (!uploadedIconPath) return;
       setFormData(prev => ({ ...prev, iconPath: uploadedIconPath }));
+      setNotice({ type: 'success', text: 'Иконка игры загружена.' });
     } catch (err: any) {
-      setMessage('Ошибка загрузки иконки: ' + err.message);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось загрузить иконку игры.')
+      });
     }
   };
 
@@ -107,10 +117,13 @@ const AdminPage: React.FC = () => {
     if (!confirm('Удалить игру?')) return;
     try {
       await window.electronAPI.deleteGame(id, user.id);
-      setMessage('Игра удалена');
+      setNotice({ type: 'success', text: 'Игра удалена.' });
       fetchGames();
     } catch (err: any) {
-      setMessage('Ошибка: ' + err.message);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось удалить игру.')
+      });
     }
   };
 
@@ -118,57 +131,25 @@ const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!user) return;
     if (!formData.genreIds.length) {
-      setMessage('Выберите хотя бы один жанр');
+      setNotice({ type: 'error', text: 'Выберите хотя бы один жанр.' });
       return;
     }
 
     try {
       if (editingGame) {
         await window.electronAPI.updateGame(editingGame.id, formData, user.id);
-        setMessage('Игра обновлена');
+        setNotice({ type: 'success', text: 'Игра обновлена.' });
       } else {
         await window.electronAPI.addGame(formData, user.id);
-        setMessage('Игра добавлена');
+        setNotice({ type: 'success', text: 'Игра добавлена.' });
       }
       fetchGames();
       resetForm();
     } catch (err: any) {
-      setMessage('Ошибка: ' + err.message);
-    }
-  };
-
-  const handleGenreSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) return;
-
-    try {
-      await window.electronAPI.addGenre(genreForm, user.id);
-      setGenreForm({ name: '', description: '' });
-      setMessage('Жанр добавлен');
-      fetchGenres();
-    } catch (err: any) {
-      setMessage('Ошибка: ' + err.message);
-    }
-  };
-
-  const handleGenreDelete = async (id: number) => {
-    if (!user) return;
-    if (!confirm('Удалить жанр?')) return;
-
-    try {
-      await window.electronAPI.deleteGenre(id, user.id);
-      setMessage('Жанр удален');
-
-      if (formData.genreIds.includes(id)) {
-        setFormData({
-          ...formData,
-          genreIds: formData.genreIds.filter(genreId => genreId !== id)
-        });
-      }
-
-      await fetchData();
-    } catch (err: any) {
-      setMessage('Ошибка: ' + err.message);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось сохранить игру.')
+      });
     }
   };
 
@@ -189,11 +170,7 @@ const AdminPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Админ-панель" subtitle="Управление каталогом и жанрами">
-      {message && (
-        <div className="panel-card panel-card-soft" role="status" aria-live="polite">
-          {message}
-        </div>
-      )}
+      {notice && <NoticeBanner notice={notice} />}
 
       <section className="stats-grid">
         <article className="metric-card">
@@ -314,64 +291,6 @@ const AdminPage: React.FC = () => {
                   <td className="row-actions">
                     <button className="btn btn-light" onClick={() => handleEdit(game)}>Редактировать</button>
                     <button className="btn btn-danger" onClick={() => handleDelete(game.id)}>Удалить</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="panel-card">
-        <div className="panel-header">
-          <h2>Жанры</h2>
-        </div>
-
-        <form onSubmit={handleGenreSubmit} className="admin-form compact-form">
-          <div className="form-grid">
-            <label className="field-wrap" htmlFor="genreName">
-              <span>Название жанра*</span>
-              <input
-                className="input"
-                id="genreName"
-                name="name"
-                value={genreForm.name}
-                onChange={e => setGenreForm({ ...genreForm, name: e.target.value })}
-                required
-              />
-            </label>
-            <label className="field-wrap" htmlFor="genreDescription">
-              <span>Описание</span>
-              <input
-                className="input"
-                id="genreDescription"
-                name="description"
-                value={genreForm.description}
-                onChange={e => setGenreForm({ ...genreForm, description: e.target.value })}
-              />
-            </label>
-          </div>
-          <div className="admin-form-actions">
-            <button className="btn" type="submit">Добавить жанр</button>
-          </div>
-        </form>
-
-        <div className="table-wrap">
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Название</th>
-                <th>Описание</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {genres.map(genre => (
-                <tr key={genre.id}>
-                  <td>{genre.name}</td>
-                  <td>{genre.description || '-'}</td>
-                  <td className="row-actions">
-                    <button className="btn btn-danger" onClick={() => handleGenreDelete(genre.id)}>Удалить</button>
                   </td>
                 </tr>
               ))}

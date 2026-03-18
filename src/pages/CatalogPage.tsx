@@ -4,6 +4,8 @@ import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
 import { Game, Genre } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
+import NoticeBanner from '../components/NoticeBanner';
+import { NoticeState, toUserErrorMessage } from '../shared/feedback';
 
 const CatalogPage: React.FC = () => {
   const { user } = useAuth();
@@ -14,6 +16,7 @@ const CatalogPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingGame, setRatingGame] = useState<Game | null>(null);
+  const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -28,7 +31,10 @@ const CatalogPage: React.FC = () => {
       setGames(gamesData);
       setGenres(genresData);
     } catch (err) {
-      console.error(err);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось загрузить каталог. Попробуйте обновить страницу.')
+      });
     } finally {
       setLoading(false);
     }
@@ -39,7 +45,10 @@ const CatalogPage: React.FC = () => {
       const data = await window.electronAPI.getGames(user?.id);
       setGames(data);
     } catch (err) {
-      console.error(err);
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось обновить список игр. Попробуйте еще раз.')
+      });
     } finally {
       setLoading(false);
     }
@@ -50,8 +59,12 @@ const CatalogPage: React.FC = () => {
     try {
       await window.electronAPI.setUserGameIcon(user.id, gameId, iconPath);
       await fetchGames();
+      setNotice({ type: 'success', text: 'Иконка игры успешно сохранена.' });
     } catch (err) {
-      alert('Ошибка сохранения иконки');
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось сохранить иконку игры.')
+      });
     }
   };
 
@@ -59,13 +72,29 @@ const CatalogPage: React.FC = () => {
     if (!user) return;
     try {
       await window.electronAPI.launchGame(gameId, user.id);
-      const game = games.find(g => g.id === gameId);
-      if (game && user.role !== 'admin') {
-        setRatingGame(game);
-        setShowRatingModal(true);
+
+      if (user.role === 'admin') {
+        return;
       }
+
+      const existingRating = await window.electronAPI.getUserRating(user.id, gameId);
+      if (existingRating) {
+        return;
+      }
+
+      const game = games.find(g => g.id === gameId);
+      if (!game) {
+        return;
+      }
+
+      setRatingGame(game);
+      setShowRatingModal(true);
+      setNotice(null);
     } catch (err) {
-      alert('Ошибка запуска игры');
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось запустить игру. Проверьте путь к исполняемому файлу.')
+      });
     }
   };
 
@@ -88,8 +117,12 @@ const CatalogPage: React.FC = () => {
       await fetchGames();
       setShowRatingModal(false);
       setRatingGame(null);
+      setNotice({ type: 'success', text: 'Оценка сохранена.' });
     } catch (err) {
-      alert('Ошибка сохранения оценки');
+      setNotice({
+        type: 'error',
+        text: toUserErrorMessage(err, 'Не удалось сохранить оценку. Попробуйте еще раз.')
+      });
     }
   };
 
@@ -109,6 +142,8 @@ const CatalogPage: React.FC = () => {
 
   return (
     <DashboardLayout title="Каталог игр" subtitle="Запуск, поиск и оценка игр в едином интерфейсе">
+      {notice && <NoticeBanner notice={notice} />}
+
       <div className="toolbar-card">
         <div className="toolbar-grid">
           <label className="field-wrap" htmlFor="searchGame">

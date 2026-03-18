@@ -37,12 +37,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
             Каталог
           </Link>
           {user?.role === 'admin' && (
-            <Link
-              to="/admin"
-              className={location.pathname === '/admin' ? 'nav-link active' : 'nav-link'}
-            >
-              Админ-панель
-            </Link>
+            <>
+              <Link
+                to="/admin"
+                className={location.pathname === '/admin' ? 'nav-link active' : 'nav-link'}
+              >
+                Админ-панель
+              </Link>
+              <Link
+                to="/genres"
+                className={location.pathname === '/genres' ? 'nav-link active' : 'nav-link'}
+              >
+                Жанры
+              </Link>
+            </>
           )}
         </nav>
       </aside>

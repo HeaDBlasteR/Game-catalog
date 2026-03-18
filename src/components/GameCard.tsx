@@ -86,7 +86,9 @@ const GameCard: React.FC<GameCardProps> = ({
       )}
 
       <div className="game-card-actions">
-        <button onClick={() => onLaunch(game.id)}>Запустить игру</button>
+        <button className="launch-button" type="button" onClick={() => onLaunch(game.id)}>
+          <span className="launch-button-text">Запустить игру</span>
+        </button>
         {canRate && (
           <button onClick={() => onRateClick(game.id)} className="rate-button">
             {userRating ? '⭐' : '☆'}

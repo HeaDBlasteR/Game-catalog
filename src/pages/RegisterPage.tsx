@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { toUserErrorMessage } from '../shared/feedback';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -15,7 +16,7 @@ const RegisterPage: React.FC = () => {
       await register(username, password);
       navigate('/catalog');
     } catch (err: any) {
-      setError(err.message);
+      setError(toUserErrorMessage(err, 'Не удалось зарегистрироваться.'));
     }
   };
 
