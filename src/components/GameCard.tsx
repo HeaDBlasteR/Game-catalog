@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 interface GameCardProps {
   game: Game;
   onLaunch: (gameId: number) => void;
+  canLaunch: boolean;
   onRateClick: (gameId: number) => void;
   canRate: boolean;
   canChangeIcon: boolean;
@@ -17,6 +18,7 @@ interface GameCardProps {
 const GameCard: React.FC<GameCardProps> = ({
   game,
   onLaunch,
+  canLaunch,
   onRateClick,
   canRate,
   canChangeIcon,
@@ -92,9 +94,11 @@ const GameCard: React.FC<GameCardProps> = ({
       )}
 
       <div className="game-card-actions">
-        <button className="launch-button" type="button" onClick={() => onLaunch(game.id)}>
-          <span className="launch-button-text">Запустить игру</span>
-        </button>
+        {canLaunch && (
+          <button className="launch-button" type="button" onClick={() => onLaunch(game.id)}>
+            <span className="launch-button-text">Запустить игру</span>
+          </button>
+        )}
         {canRate && (
           <button onClick={() => onRateClick(game.id)} className="rate-button">
             {userRating ? '⭐' : '☆'}

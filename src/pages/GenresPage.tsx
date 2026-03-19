@@ -3,6 +3,7 @@ import DashboardLayout from '../components/DashboardLayout.tsx';
 import { useAuth } from '../contexts/AuthContext';
 import { Genre } from '../shared/types';
 import NoticeBanner from '../components/NoticeBanner';
+import ConfirmModal from '../components/ConfirmModal';
 import { NoticeState, toUserErrorMessage } from '../shared/feedback';
 
 type GenreFormState = {
@@ -22,6 +23,7 @@ const GenresPage: React.FC = () => {
   const [editForm, setEditForm] = useState<GenreFormState>(EMPTY_GENRE_FORM);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingGenre, setEditingGenre] = useState<Genre | null>(null);
+  const [genreToDelete, setGenreToDelete] = useState<Genre | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
@@ -97,14 +99,18 @@ const GenresPage: React.FC = () => {
     }
   };
 
-  const handleGenreDelete = async (id: number) => {
-    if (!user) return;
+  const handleGenreDeleteRequest = (id: number) => {
+    const genre = genres.find(item => item.id === id);
+    if (!genre) return;
+    setGenreToDelete(genre);
+  };
 
-    const shouldDelete = window.confirm('Удалить жанр?');
-    if (!shouldDelete) return;
+  const handleGenreDelete = async () => {
+    if (!user) return;
+    if (!genreToDelete) return;
 
     try {
-      await window.electronAPI.deleteGenre(id, user.id);
+      await window.electronAPI.deleteGenre(genreToDelete.id, user.id);
       setNotice({ type: 'success', text: 'Жанр удален.' });
       await fetchGenres();
     } catch (err: any) {
@@ -112,6 +118,8 @@ const GenresPage: React.FC = () => {
         type: 'error',
         text: toUserErrorMessage(err, 'Не удалось удалить жанр.')
       });
+    } finally {
+      setGenreToDelete(null);
     }
   };
 
@@ -122,6 +130,15 @@ const GenresPage: React.FC = () => {
   return (
     <DashboardLayout title="Жанры" subtitle="Создание, редактирование и удаление жанров">
       {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
+
+      <ConfirmModal
+        isOpen={Boolean(genreToDelete)}
+        title="Удалить жанр?"
+        message={genreToDelete ? `Жанр \"${genreToDelete.name}\" будет удален.` : ''}
+        confirmText="Удалить"
+        onConfirm={handleGenreDelete}
+        onCancel={() => setGenreToDelete(null)}
+      />
 
       <section className="panel-card">
         <div className="panel-header">
@@ -145,7 +162,7 @@ const GenresPage: React.FC = () => {
                   <td>{genre.description || '-'}</td>
                   <td className="row-actions">
                     <button className="btn btn-light" type="button" onClick={() => handleEditModalOpen(genre)}>Редактировать</button>
-                    <button className="btn btn-danger" onClick={() => handleGenreDelete(genre.id)}>Удалить</button>
+                    <button className="btn btn-danger" type="button" onClick={() => handleGenreDeleteRequest(genre.id)}>Удалить</button>
                   </td>
                 </tr>
               ))}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
+import ConfirmModal from '../components/ConfirmModal';
 import { Game, Genre, GameInput } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import NoticeBanner from '../components/NoticeBanner';
@@ -28,6 +29,7 @@ const CatalogPage: React.FC = () => {
   const [notice, setNotice] = useState<NoticeState | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
+  const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
   const [formData, setFormData] = useState<GameInput>(emptyGameForm);
   const isAdmin = user?.role === 'admin';
   const pageTitle = isAdmin ? 'Управление каталогом' : 'Каталог игр';
@@ -144,12 +146,19 @@ const CatalogPage: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleDeleteGame = async (gameId: number) => {
+  const handleDeleteGameRequest = (gameId: number) => {
+    if (!isAdmin) return;
+    const game = games.find(item => item.id === gameId);
+    if (!game) return;
+    setGameToDelete(game);
+  };
+
+  const handleDeleteGame = async () => {
     if (!user || !isAdmin) return;
-    if (!confirm('Удалить игру?')) return;
+    if (!gameToDelete) return;
 
     try {
-      await window.electronAPI.deleteGame(gameId, user.id);
+      await window.electronAPI.deleteGame(gameToDelete.id, user.id);
       await fetchGames();
       setNotice({ type: 'success', text: 'Игра удалена.' });
     } catch (err) {
@@ -157,6 +166,8 @@ const CatalogPage: React.FC = () => {
         type: 'error',
         text: toUserErrorMessage(err, 'Не удалось удалить игру.')
       });
+    } finally {
+      setGameToDelete(null);
     }
   };
 
@@ -190,12 +201,12 @@ const CatalogPage: React.FC = () => {
 
   const handleLaunch = async (gameId: number) => {
     if (!user) return;
+    if (user.role !== 'user') {
+      return;
+    }
+
     try {
       await window.electronAPI.launchGame(gameId, user.id);
-
-      if (user.role === 'admin') {
-        return;
-      }
 
       const existingRating = await window.electronAPI.getUserRating(user.id, gameId);
       if (existingRating) {
@@ -261,6 +272,15 @@ const CatalogPage: React.FC = () => {
     <DashboardLayout title={pageTitle} subtitle={pageSubtitle}>
       {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
+      <ConfirmModal
+        isOpen={Boolean(gameToDelete)}
+        title="Удалить игру?"
+        message={gameToDelete ? `Игра \"${gameToDelete.title}\" будет удалена из каталога.` : ''}
+        confirmText="Удалить"
+        onConfirm={handleDeleteGame}
+        onCancel={() => setGameToDelete(null)}
+      />
+
       {isAdmin && (
         <section className="stats-grid">
           <article className="metric-card">
@@ -322,67 +342,84 @@ const CatalogPage: React.FC = () => {
       </div>
 
       {isAdmin && showForm && (
-        <section className="panel-card">
-          <form onSubmit={handleGameSubmit} className="admin-form">
-            <h3>{editingGame ? 'Редактировать игру' : 'Добавить игру'}</h3>
-            <div className="form-grid">
-              <label className="field-wrap" htmlFor="title">
-                <span>Название*</span>
-                <input className="input" id="title" name="title" value={formData.title} onChange={handleInputChange} required />
-              </label>
+        <div className="rating-modal-overlay" role="presentation" onClick={resetForm}>
+          <div
+            className="rating-modal-content game-form-modal-content"
+            role="dialog"
+            aria-modal="true"
+            aria-label={editingGame ? 'Редактирование игры' : 'Добавление игры'}
+            onClick={event => event.stopPropagation()}
+          >
+            <form onSubmit={handleGameSubmit} className="admin-form compact-form">
+              <h3>{editingGame ? 'Редактировать игру' : 'Добавить игру'}</h3>
+              <div className="form-grid">
+                <label className="field-wrap" htmlFor="title">
+                  <span>Название*</span>
+                  <input className="input" id="title" name="title" value={formData.title} onChange={handleInputChange} required />
+                </label>
 
-              <label className="field-wrap" htmlFor="developer">
-                <span>Разработчик*</span>
-                <input className="input" id="developer" name="developer" value={formData.developer} onChange={handleInputChange} required />
-              </label>
+                <label className="field-wrap" htmlFor="developer">
+                  <span>Разработчик*</span>
+                  <input className="input" id="developer" name="developer" value={formData.developer} onChange={handleInputChange} required />
+                </label>
 
-              <label className="field-wrap" htmlFor="releaseDate">
-                <span>Дата релиза*</span>
-                <input className="input" id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
-              </label>
+                <label className="field-wrap" htmlFor="releaseDate">
+                  <span>Дата релиза*</span>
+                  <input className="input" id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
+                </label>
 
-              <label className="field-wrap" htmlFor="filePath">
-                <span>Путь к игре (exe)*</span>
-                <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
-              </label>
+                <label className="field-wrap" htmlFor="filePath">
+                  <span>Путь к игре (exe)*</span>
+                  <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
+                </label>
 
-              <div className="field-wrap">
-                <span>Иконка (опционально)</span>
-                <div className="row-actions">
-                  <button className="btn btn-light" type="button" onClick={handleUploadBaseIcon}>Загрузить с ПК</button>
-                  <button className="btn btn-light" type="button" onClick={handleClearBaseIcon}>Убрать</button>
-                </div>
-                <p>{formData.iconPath ? 'Иконка выбрана' : 'Иконка не выбрана'}</p>
-              </div>
-
-              <label className="field-wrap field-full" htmlFor="description">
-                <span>Описание</span>
-                <textarea className="input" id="description" name="description" value={formData.description} onChange={handleInputChange} />
-              </label>
-
-              <div className="field-wrap field-full">
-                <span>Жанры*</span>
-                <div className="genre-checkboxes" role="group" aria-label="Жанры">
-                  {genres.map(genre => (
-                    <label key={genre.id} className="genre-checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={formData.genreIds.includes(genre.id)}
-                        onChange={e => handleGenreToggle(genre.id, e.target.checked)}
+                <div className="field-wrap">
+                  <span>Иконка</span>
+                  <div className="row-actions">
+                    <button className="btn btn-light" type="button" onClick={handleUploadBaseIcon}>Загрузить с ПК</button>
+                    <button className="btn btn-light" type="button" onClick={handleClearBaseIcon}>Убрать</button>
+                  </div>
+                  {formData.iconPath ? (
+                    <div className="game-form-icon-preview-wrap">
+                      <img
+                        className="game-form-icon-preview"
+                        src={formData.iconPath}
+                        alt="Предпросмотр иконки игры"
                       />
-                      <span>{genre.name}</span>
-                    </label>
-                  ))}
+                    </div>
+                  ) : null}
+                  <p>{formData.iconPath ? 'Иконка выбрана' : 'Иконка не выбрана'}</p>
+                </div>
+
+                <label className="field-wrap field-full" htmlFor="description">
+                  <span>Описание</span>
+                  <textarea className="input" id="description" name="description" value={formData.description} onChange={handleInputChange} />
+                </label>
+
+                <div className="field-wrap field-full">
+                  <span>Жанры*</span>
+                  <div className="genre-checkboxes" role="group" aria-label="Жанры">
+                    {genres.map(genre => (
+                      <label key={genre.id} className="genre-checkbox-item">
+                        <input
+                          type="checkbox"
+                          checked={formData.genreIds.includes(genre.id)}
+                          onChange={e => handleGenreToggle(genre.id, e.target.checked)}
+                        />
+                        <span>{genre.name}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="admin-form-actions">
-              <button className="btn" type="submit">Сохранить</button>
-              <button className="btn btn-light" type="button" onClick={resetForm}>Отмена</button>
-            </div>
-          </form>
-        </section>
+              <div className="admin-form-actions">
+                <button className="btn" type="submit">Сохранить</button>
+                <button className="btn btn-light" type="button" onClick={resetForm}>Отмена</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {!filteredGames.length ? (
@@ -397,13 +434,14 @@ const CatalogPage: React.FC = () => {
               key={game.id}
               game={game}
               onLaunch={handleLaunch}
+              canLaunch={user?.role === 'user'}
               onRateClick={handleRateClick}
               canRate={user?.role !== 'admin'}
               canChangeIcon={user?.role !== 'admin'}
               onIconChange={handleSetGameIcon}
               canManage={isAdmin}
               onEdit={handleEditGame}
-              onDelete={handleDeleteGame}
+              onDelete={handleDeleteGameRequest}
             />
           ))}
         </div>
