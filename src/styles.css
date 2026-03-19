@@ -2,7 +2,6 @@
   --bg-root: #f2f4f8;
   --bg-sidebar: #ffffff;
   --bg-panel: #ffffff;
-  --bg-soft: #f8faff;
   --border: #e3e8f2;
   --text-primary: #1c2434;
   --text-secondary: #6d7788;
@@ -177,10 +176,6 @@ a:hover {
   padding: 16px;
 }
 
-.panel-card-soft {
-  background: linear-gradient(135deg, #f5f8ff 0%, #edf3ff 100%);
-}
-
 .toast-container {
   position: fixed;
   right: 20px;
@@ -280,12 +275,6 @@ a:hover {
   font-size: 18px;
 }
 
-.panel-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .toolbar-card {
   background: var(--bg-panel);
   border: 1px solid var(--border);
@@ -310,18 +299,6 @@ a:hover {
 
 .toolbar-action-wrap .btn {
   min-height: 42px;
-}
-
-.stats-inline {
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--bg-soft);
-}
-
-.stats-inline strong {
-  font-size: 20px;
-  font-weight: 700;
 }
 
 .stats-grid {
@@ -513,54 +490,8 @@ textarea.input {
   font-weight: 600;
 }
 
-.game-card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
 .game-card h3 {
   font-size: 18px;
-}
-
-.icon-rate {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: #fff;
-  color: #8f98aa;
-  font-size: 20px;
-  cursor: pointer;
-}
-
-.icon-rate.is-rated {
-  color: #f0b429;
-}
-
-.game-meta {
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-.game-meta span {
-  color: var(--text-primary);
-  font-weight: 600;
-}
-
-.genre-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.genre-chip {
-  border: 1px solid #d6e0ff;
-  background: #edf2ff;
-  color: #2f4291;
-  border-radius: 999px;
-  font-size: 12px;
-  padding: 4px 8px;
 }
 
 .game-card-actions {
@@ -871,11 +802,6 @@ textarea.input {
   align-items: stretch;
 }
 
-.login-auth-shell {
-  grid-template-columns: 1fr;
-  justify-content: stretch;
-}
-
 .auth-hero {
   min-height: 100vh;
   border: 0;
@@ -889,65 +815,9 @@ textarea.input {
   padding: 42px;
 }
 
-.login-auth-shell .auth-hero {
-  max-width: none;
-}
-
-.login-auth-shell .auth-form,
-.login-auth-shell .auth-hero-title,
-.login-auth-shell .auth-hero-description,
-.login-auth-shell .error-text {
-  width: min(100%, 420px);
-}
-
 .auth-hero h1 {
   font-size: 36px;
   margin-bottom: 8px;
-}
-
-.auth-hero-title {
-  margin-top: 8px;
-  font-size: 28px;
-}
-
-.auth-hero-description {
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.auth-hero-form .field-wrap span {
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.auth-hero-form .input {
-  border-color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.95);
-}
-
-.auth-hero-form .input:focus {
-  border-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.28);
-}
-
-.auth-hero-register {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.12);
-  font-size: 14px;
-}
-
-.auth-hero-link {
-  color: #ffffff;
-  font-weight: 700;
-  text-decoration: underline;
-}
-
-.auth-hero-link:hover {
-  text-decoration: none;
 }
 
 .auth-card {
@@ -1055,10 +925,6 @@ textarea.input {
     grid-template-columns: 1fr;
   }
 
-  .login-auth-shell {
-    grid-template-columns: 1fr;
-  }
-
   .auth-hero {
     min-height: 50vh;
     padding: 28px;
@@ -1121,7 +987,6 @@ textarea.input {
   }
 
   .panel-header,
-  .panel-actions,
   .modal-actions,
   .row-actions {
     flex-wrap: wrap;

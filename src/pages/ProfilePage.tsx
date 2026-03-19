@@ -11,6 +11,44 @@ type ProfileFormState = {
   iconPath: string | null;
 };
 
+const formatRussianPhone = (rawValue: string): string => {
+  const digitsOnly = rawValue.replace(/\D/g, '');
+  if (!digitsOnly) return '';
+
+  let normalizedDigits = digitsOnly;
+
+  if (normalizedDigits.startsWith('8')) {
+    normalizedDigits = `7${normalizedDigits.slice(1)}`;
+  } else if (normalizedDigits.startsWith('9')) {
+    normalizedDigits = `7${normalizedDigits}`;
+  } else if (!normalizedDigits.startsWith('7')) {
+    normalizedDigits = `7${normalizedDigits.slice(1)}`;
+  }
+
+  normalizedDigits = normalizedDigits.slice(0, 11);
+  const subscriber = normalizedDigits.slice(1);
+
+  let formatted = '+7';
+
+  if (subscriber.length > 0) {
+    formatted += ` (${subscriber.slice(0, 3)}`;
+  }
+  if (subscriber.length > 3) {
+    formatted += ')';
+  }
+  if (subscriber.length > 3) {
+    formatted += ` ${subscriber.slice(3, 6)}`;
+  }
+  if (subscriber.length > 6) {
+    formatted += `-${subscriber.slice(6, 8)}`;
+  }
+  if (subscriber.length > 8) {
+    formatted += `-${subscriber.slice(8, 10)}`;
+  }
+
+  return formatted;
+};
+
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
   const [form, setForm] = useState<ProfileFormState>({
@@ -28,7 +66,7 @@ const ProfilePage: React.FC = () => {
     setForm({
       displayName: user.displayName ?? '',
       email: user.email ?? '',
-      phone: user.phone ?? '',
+      phone: formatRussianPhone(user.phone ?? ''),
       iconPath: user.iconPath ?? null
     });
   }, [user]);
@@ -40,10 +78,32 @@ const ProfilePage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    if (name === 'phone') {
+      setForm(prev => ({
+        ...prev,
+        phone: formatRussianPhone(value)
+      }));
+      return;
+    }
+
     setForm(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handlePhoneFocus = () => {
+    setForm(prev => {
+      if (prev.phone.trim().length > 0) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        phone: '+7'
+      };
+    });
   };
 
   const handleUploadIcon = async () => {
@@ -172,8 +232,10 @@ const ProfilePage: React.FC = () => {
                 type="text"
                 value={form.phone}
                 onChange={handleInputChange}
-                maxLength={32}
-                placeholder="+7 900 000-00-00"
+                onFocus={handlePhoneFocus}
+                inputMode="numeric"
+                maxLength={18}
+                placeholder="+7 (900) 000-00-00"
               />
             </label>
 
