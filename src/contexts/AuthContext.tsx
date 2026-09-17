@@ -46,6 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     setUser(null);
+    window.electronAPI.logout().catch(() => undefined);
   };
 
   const updateUser = (nextUser: User) => {

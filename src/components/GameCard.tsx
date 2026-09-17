@@ -10,6 +10,7 @@ interface GameCardProps {
   canRate: boolean;
   canChangeIcon: boolean;
   onIconChange: (gameId: number, iconPath: string | null) => Promise<void>;
+  onIconError?: (error: unknown) => void;
   canManage?: boolean;
   onEdit?: (game: Game) => void;
   onDelete?: (gameId: number) => void;
@@ -23,6 +24,7 @@ const GameCard: React.FC<GameCardProps> = ({
   canRate,
   canChangeIcon,
   onIconChange,
+  onIconError,
   canManage = false,
   onEdit,
   onDelete
@@ -32,12 +34,19 @@ const GameCard: React.FC<GameCardProps> = ({
   const [savingIcon, setSavingIcon] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      window.electronAPI.getUserRating(user.id, game.id).then((rating: number | null) => {
-        setUserRating(rating);
+    if (!user) return;
+    let cancelled = false;
+    window.electronAPI.getUserRating(game.id)
+      .then((rating: number | null) => {
+        if (!cancelled) setUserRating(rating);
+      })
+      .catch(() => {
+        if (!cancelled) setUserRating(null);
       });
-    }
-  }, [user, game.id]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user, game.id, game.totalRatings, game.averageRating]);
 
   const stars = (rating: number) => {
     const rounded = Math.round(rating);
@@ -50,9 +59,11 @@ const GameCard: React.FC<GameCardProps> = ({
     if (!user) return;
     setSavingIcon(true);
     try {
-      const uploadedIconPath = await window.electronAPI.uploadGameIconFromPC('user', user.id);
+      const uploadedIconPath = await window.electronAPI.uploadGameIconFromPC('user');
       if (!uploadedIconPath) return;
       await onIconChange(game.id, uploadedIconPath);
+    } catch (err) {
+      onIconError?.(err);
     } finally {
       setSavingIcon(false);
     }

@@ -2,6 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import { AppDataSource } from '../data-source';
 import { gameDb } from '../database-service';
 import { User } from '../../src/entities/User';
+import { assertString, clearSession, requireUser, setSessionUser } from '../session';
 
 const ICON_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_ICON_MIME_TYPES = new Set([
@@ -33,14 +34,14 @@ function toPublicUser(user: User) {
 }
 
 function normalizeNullableText(value: string | null | undefined, maxLength: number): string | null {
-  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   if (!trimmed) return null;
   return trimmed.slice(0, maxLength);
 }
 
 function validateProfileIconPath(iconPath?: string | null): string | null {
-  if (iconPath === undefined || iconPath === null) return null;
+  if (typeof iconPath !== 'string') return null;
 
   const trimmed = iconPath.trim();
   if (!trimmed) return null;
@@ -71,10 +72,12 @@ export function registerAuthHandlers() {
   ipcMain.handle('auth:login', async (event, username: string, password: string) => {
     try {
       const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ username });
-      if (!user) throw new Error('User not found');
-      const isValid = await user.checkPassword(password);
-      if (!isValid) throw new Error('Invalid password');
+      const normalizedUsername = assertString(username, 'Имя пользователя').trim();
+      const user = normalizedUsername ? await userRepo.findOneBy({ username: normalizedUsername }) : null;
+      if (!user || !(await user.checkPassword(assertString(password, 'Пароль')))) {
+        throw new Error('Неверное имя пользователя или пароль');
+      }
+      setSessionUser(event, user.id);
       return toPublicUser(user);
     } catch (err: any) {
       throw new Error(err.message);
@@ -83,37 +86,44 @@ export function registerAuthHandlers() {
 
   ipcMain.handle('auth:register', async (event, username: string, password: string) => {
     try {
+      const normalizedUsername = assertString(username, 'Имя пользователя').trim();
+      if (!normalizedUsername) throw new Error('Имя пользователя обязательно');
+      if (normalizedUsername.length > 64) throw new Error('Имя пользователя не должно быть длиннее 64 символов');
+      if (!assertString(password, 'Пароль')) throw new Error('Пароль обязателен');
+      if (Buffer.byteLength(password) > 72) throw new Error('Пароль слишком длинный');
+
       const userRepo = AppDataSource.getRepository(User);
-      const existing = await userRepo.findOneBy({ username });
-      if (existing) throw new Error('Username already exists');
+      const existing = await userRepo.findOneBy({ username: normalizedUsername });
+      if (existing) throw new Error('Пользователь с таким именем уже существует');
       const user = new User();
-      user.username = username;
+      user.username = normalizedUsername;
       await user.setPassword(password);
       user.role = 'user';
       const saved = await userRepo.save(user);
+      setSessionUser(event, saved.id);
       return toPublicUser(saved);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('auth:getProfile', async (event, userId: number) => {
-    try {
-      const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ id: userId });
-      if (!user) throw new Error('Пользователь не найден');
+  ipcMain.handle('auth:logout', async event => {
+    clearSession(event.sender.id);
+    return { success: true };
+  });
 
+  ipcMain.handle('auth:getProfile', async event => {
+    try {
+      const user = await requireUser(event);
       return toPublicUser(user);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('auth:uploadProfileIconFromPC', async (event, userId: number) => {
+  ipcMain.handle('auth:uploadProfileIconFromPC', async event => {
     try {
-      const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ id: userId });
-      if (!user) throw new Error('Пользователь не найден');
+      const user = await requireUser(event);
 
       const { canceled, filePaths } = await dialog.showOpenDialog({
         title: 'Выберите иконку профиля',
@@ -125,17 +135,17 @@ export function registerAuthHandlers() {
         return null;
       }
 
-      return await gameDb.uploadIconFromLocalFile(filePaths[0], 'user', userId);
+      return await gameDb.uploadIconFromLocalFile(filePaths[0], 'user', user.id);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('auth:updateProfile', async (event, userId: number, input: UpdateProfileInput) => {
+  ipcMain.handle('auth:updateProfile', async (event, input: UpdateProfileInput) => {
     try {
       const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ id: userId });
-      if (!user) throw new Error('Пользователь не найден');
+      const user = await requireUser(event);
+      if (!input || typeof input !== 'object') throw new Error('Некорректные данные профиля');
 
       if ('displayName' in input) {
         user.displayName = normalizeNullableText(input.displayName, 64);

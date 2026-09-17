@@ -110,7 +110,7 @@ const ProfilePage: React.FC = () => {
     if (!user) return;
 
     try {
-      const iconDataUrl = await window.electronAPI.uploadProfileIconFromPC(user.id);
+      const iconDataUrl = await window.electronAPI.uploadProfileIconFromPC();
       if (!iconDataUrl) return;
 
       setForm(prev => ({ ...prev, iconPath: iconDataUrl }));
@@ -135,10 +135,10 @@ const ProfilePage: React.FC = () => {
     setNotice(null);
 
     try {
-      const updatedUser = await window.electronAPI.updateProfile(user.id, {
+      const updatedUser = await window.electronAPI.updateProfile({
         displayName: form.displayName,
         email: form.email,
-        phone: form.phone,
+        phone: form.phone.replace(/\D/g, '').length > 1 ? form.phone : '',
         iconPath: form.iconPath
       });
 

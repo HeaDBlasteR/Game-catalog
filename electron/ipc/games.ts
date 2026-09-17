@@ -1,30 +1,52 @@
-import { dialog, ipcMain } from 'electron';
+import { dialog, ipcMain, shell } from 'electron';
 import { gameDb } from '../database-service';
-import { AppDataSource } from '../data-source';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { User } from '../../src/entities/User';
-const execAsync = promisify(exec);
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { assertId, requireAdmin, requireUser } from '../session';
+
+async function runGame(filePath: string): Promise<void> {
+  if (path.extname(filePath).toLowerCase() !== '.exe') {
+    const error = await shell.openPath(filePath);
+    if (error) throw new Error(error);
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(filePath, [], {
+      cwd: path.dirname(filePath),
+      stdio: 'ignore',
+      windowsHide: false
+    });
+    child.once('error', reject);
+    child.once('exit', () => resolve());
+  });
+}
 
 export function registerGamesHandlers() {
-  ipcMain.handle('games:getAll', async (event, userId?: number) => {
+  ipcMain.handle('games:getAll', async event => {
     try {
-      return await gameDb.getAll(userId);
+      const user = await requireUser(event);
+      return await gameDb.getAll(user.id);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('games:get', async (event, id: number, userId?: number) => {
+  ipcMain.handle('games:get', async (event, id: number) => {
     try {
-      return await gameDb.getById(id, userId);
+      const user = await requireUser(event);
+      return await gameDb.getById(assertId(id), user.id);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('games:uploadIconFromPC', async (event, scope: 'admin' | 'user', userId?: number) => {
+  ipcMain.handle('games:uploadIconFromPC', async (event, scope: 'admin' | 'user') => {
     try {
+      if (scope !== 'admin' && scope !== 'user') throw new Error('Некорректный тип иконки');
+      const user = scope === 'admin' ? await requireAdmin(event) : await requireUser(event);
+
       const { canceled, filePaths } = await dialog.showOpenDialog({
         title: 'Выберите иконку игры',
         properties: ['openFile'],
@@ -35,41 +57,40 @@ export function registerGamesHandlers() {
         return null;
       }
 
-      if (scope === 'user') {
-        if (!userId) throw new Error('Не передан userId для пользовательской иконки');
-        const userRepo = AppDataSource.getRepository(User);
-        const user = await userRepo.findOneBy({ id: userId });
-        if (!user) throw new Error('Пользователь не найден');
-      }
-
-      return await gameDb.uploadIconFromLocalFile(filePaths[0], scope, userId);
+      return await gameDb.uploadIconFromLocalFile(filePaths[0], scope, user.id);
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('games:setUserIcon', async (event, userId: number, gameId: number, iconPath: string | null) => {
+  ipcMain.handle('games:setUserIcon', async (event, gameId: number, iconPath: string | null) => {
     try {
-      const userRepo = AppDataSource.getRepository(User);
-      const user = await userRepo.findOneBy({ id: userId });
-      if (!user) throw new Error('Пользователь не найден');
+      const user = await requireUser(event);
+      if (iconPath !== null && typeof iconPath !== 'string') throw new Error('Некорректный формат иконки');
 
-      const game = await gameDb.getById(gameId);
+      const game = await gameDb.getById(assertId(gameId));
       if (!game) throw new Error('Игра не найдена');
 
-      await gameDb.setUserIcon(userId, gameId, iconPath);
+      await gameDb.setUserIcon(user.id, game.id, iconPath);
       return { success: true };
     } catch (err: any) {
       throw new Error(err.message);
     }
   });
 
-  ipcMain.handle('games:launch', async (event, gameId: number, userId: number) => {
+  ipcMain.handle('games:launch', async (event, gameId: number) => {
     try {
-      const game = await gameDb.getById(gameId);
-      if (!game) throw new Error('Game not found');
-      await execAsync(`"${game.filePath}"`);
-      return gameId;
+      await requireUser(event);
+      const game = await gameDb.getById(assertId(gameId));
+      if (!game) throw new Error('Игра не найдена');
+
+      const filePath = game.filePath.trim().replace(/^"(.*)"$/, '$1');
+      if (!filePath || !path.isAbsolute(filePath) || !fs.existsSync(filePath)) {
+        throw new Error('Файл игры не найден. Проверьте путь к исполняемому файлу');
+      }
+
+      await runGame(filePath);
+      return game.id;
     } catch (err: any) {
       throw new Error(err.message);
     }

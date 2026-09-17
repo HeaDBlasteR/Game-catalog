@@ -70,7 +70,7 @@ const GenresPage: React.FC = () => {
     if (!user) return;
 
     try {
-      await window.electronAPI.addGenre(createForm, user.id);
+      await window.electronAPI.addGenre(createForm);
       handleCreateModalClose();
       setNotice({ type: 'success', text: 'Жанр добавлен.' });
       await fetchGenres();
@@ -87,7 +87,7 @@ const GenresPage: React.FC = () => {
     if (!user || !editingGenre) return;
 
     try {
-      await window.electronAPI.updateGenre(editingGenre.id, editForm, user.id);
+      await window.electronAPI.updateGenre(editingGenre.id, editForm);
       handleEditModalClose();
       setNotice({ type: 'success', text: 'Жанр обновлен.' });
       await fetchGenres();
@@ -110,7 +110,7 @@ const GenresPage: React.FC = () => {
     if (!genreToDelete) return;
 
     try {
-      await window.electronAPI.deleteGenre(genreToDelete.id, user.id);
+      await window.electronAPI.deleteGenre(genreToDelete.id);
       setNotice({ type: 'success', text: 'Жанр удален.' });
       await fetchGenres();
     } catch (err: any) {

@@ -44,7 +44,7 @@ const CatalogPage: React.FC = () => {
   const fetchData = async () => {
     try {
       const [gamesData, genresData] = await Promise.all([
-        window.electronAPI.getGames(user?.id),
+        window.electronAPI.getGames(),
         window.electronAPI.getGenres()
       ]);
       setGames(gamesData);
@@ -59,7 +59,7 @@ const CatalogPage: React.FC = () => {
 
   const fetchGames = async () => {
     try {
-      const data = await window.electronAPI.getGames(user?.id);
+      const data = await window.electronAPI.getGames();
       setGames(data);
     } catch (err) {
       setNotice({
@@ -72,7 +72,7 @@ const CatalogPage: React.FC = () => {
   const handleSetGameIcon = async (gameId: number, iconPath: string | null) => {
     if (!user) return;
     try {
-      await window.electronAPI.setUserGameIcon(user.id, gameId, iconPath);
+      await window.electronAPI.setUserGameIcon(gameId, iconPath);
       await fetchGames();
       setNotice({ type: 'success', text: 'Иконка игры успешно сохранена.' });
     } catch (err) {
@@ -158,7 +158,7 @@ const CatalogPage: React.FC = () => {
     if (!gameToDelete) return;
 
     try {
-      await window.electronAPI.deleteGame(gameToDelete.id, user.id);
+      await window.electronAPI.deleteGame(gameToDelete.id);
       await fetchGames();
       setNotice({ type: 'success', text: 'Игра удалена.' });
     } catch (err) {
@@ -182,10 +182,10 @@ const CatalogPage: React.FC = () => {
 
     try {
       if (editingGame) {
-        await window.electronAPI.updateGame(editingGame.id, formData, user.id);
+        await window.electronAPI.updateGame(editingGame.id, formData);
         setNotice({ type: 'success', text: 'Игра обновлена.' });
       } else {
-        await window.electronAPI.addGame(formData, user.id);
+        await window.electronAPI.addGame(formData);
         setNotice({ type: 'success', text: 'Игра добавлена.' });
       }
 
@@ -206,9 +206,9 @@ const CatalogPage: React.FC = () => {
     }
 
     try {
-      await window.electronAPI.launchGame(gameId, user.id);
+      await window.electronAPI.launchGame(gameId);
 
-      const existingRating = await window.electronAPI.getUserRating(user.id, gameId);
+      const existingRating = await window.electronAPI.getUserRating(gameId);
       if (existingRating) {
         return;
       }
@@ -244,7 +244,7 @@ const CatalogPage: React.FC = () => {
   const handleSaveRating = async (rating: 1 | 2 | 3 | 4 | 5) => {
     if (!user || !ratingGame) return;
     try {
-      await window.electronAPI.rateGame(user.id, ratingGame.id, rating);
+      await window.electronAPI.rateGame(ratingGame.id, rating);
       await fetchGames();
       setShowRatingModal(false);
       setRatingGame(null);
@@ -439,6 +439,10 @@ const CatalogPage: React.FC = () => {
               canRate={user?.role !== 'admin'}
               canChangeIcon={user?.role !== 'admin'}
               onIconChange={handleSetGameIcon}
+              onIconError={err => setNotice({
+                type: 'error',
+                text: toUserErrorMessage(err, 'Не удалось загрузить иконку игры.')
+              })}
               canManage={isAdmin}
               onEdit={handleEditGame}
               onDelete={handleDeleteGameRequest}

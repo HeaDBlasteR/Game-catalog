@@ -1,14 +1,15 @@
-import { app, BrowserWindow } from 'electron';
+import 'reflect-metadata';
+import { app, BrowserWindow, dialog } from 'electron';
 import path from 'path';
 import { AppDataSource } from './data-source';
 import { User } from '../src/entities/User';
-import 'reflect-metadata';
 import { registerAuthHandlers } from './ipc/auth';
 import { registerGamesHandlers } from './ipc/games';
 import { registerRatingsHandlers } from './ipc/ratings';
 import { registerAdminHandlers } from './ipc/admin';
 import { registerGenresHandlers } from './ipc/genres';
 import { DefaultGenreService } from './services/default-genre-service';
+import { clearSession } from './session';
 
 async function createDefaultAdmin() {
   const userRepo = AppDataSource.getRepository(User);
@@ -31,8 +32,17 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
     },
   });
+
+  const webContentsId = win.webContents.id;
+  win.webContents.on('destroyed', () => clearSession(webContentsId));
+  win.webContents.on('did-navigate', () => clearSession(webContentsId));
+  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  win.webContents.on('will-navigate', event => event.preventDefault());
+  win.webContents.session.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
 
   if (process.env.NODE_ENV === 'development') {
     win.loadURL('http://localhost:3000');
@@ -43,9 +53,15 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-  await AppDataSource.initialize();
-  await createDefaultAdmin();
-  await DefaultGenreService.ensureDefaultGenres();
+  try {
+    await AppDataSource.initialize();
+    await createDefaultAdmin();
+    await DefaultGenreService.ensureDefaultGenres();
+  } catch (err: any) {
+    dialog.showErrorBox('Ошибка запуска', `Не удалось подключиться к базе данных:\n${err?.message ?? err}`);
+    app.quit();
+    return;
+  }
 
   registerAuthHandlers();
   registerGamesHandlers();
