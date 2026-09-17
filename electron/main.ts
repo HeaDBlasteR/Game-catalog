@@ -10,6 +10,7 @@ import { registerAdminHandlers } from './ipc/admin';
 import { registerGenresHandlers } from './ipc/genres';
 import { DefaultGenreService } from './services/default-genre-service';
 import { clearSession } from './session';
+import { mt, registerI18nHandlers } from './i18n';
 
 async function createDefaultAdmin() {
   const userRepo = AppDataSource.getRepository(User);
@@ -58,11 +59,12 @@ app.whenReady().then(async () => {
     await createDefaultAdmin();
     await DefaultGenreService.ensureDefaultGenres();
   } catch (err: any) {
-    dialog.showErrorBox('Ошибка запуска', `Не удалось подключиться к базе данных:\n${err?.message ?? err}`);
+    dialog.showErrorBox(mt('startupErrorTitle'), `${mt('startupErrorMessage')}\n${err?.message ?? err}`);
     app.quit();
     return;
   }
 
+  registerI18nHandlers();
   registerAuthHandlers();
   registerGamesHandlers();
   registerGenresHandlers();

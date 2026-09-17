@@ -1,6 +1,7 @@
 import type { IpcMainInvokeEvent } from 'electron';
 import { AppDataSource } from './data-source';
 import { User } from '../src/entities/User';
+import { appError } from '../src/shared/app-error';
 
 const sessions = new Map<number, number>();
 
@@ -18,12 +19,12 @@ export function getSessionUserId(event: IpcMainInvokeEvent): number | undefined 
 
 export async function requireUser(event: IpcMainInvokeEvent): Promise<User> {
   const userId = sessions.get(event.sender.id);
-  if (!userId) throw new Error('Требуется вход в систему');
+  if (!userId) throw appError('authRequired');
 
   const user = await AppDataSource.getRepository(User).findOneBy({ id: userId });
   if (!user) {
     sessions.delete(event.sender.id);
-    throw new Error('Требуется вход в систему');
+    throw appError('authRequired');
   }
 
   return user;
@@ -31,18 +32,18 @@ export async function requireUser(event: IpcMainInvokeEvent): Promise<User> {
 
 export async function requireAdmin(event: IpcMainInvokeEvent): Promise<User> {
   const user = await requireUser(event);
-  if (user.role !== 'admin') throw new Error('Недостаточно прав для выполнения действия');
+  if (user.role !== 'admin') throw appError('forbidden');
   return user;
 }
 
 export function assertId(value: unknown): number {
   if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-    throw new Error('Некорректный идентификатор');
+    throw appError('invalidId');
   }
   return value;
 }
 
-export function assertString(value: unknown, fieldName: string): string {
-  if (typeof value !== 'string') throw new Error(`Некорректное значение поля «${fieldName}»`);
+export function assertString(value: unknown): string {
+  if (typeof value !== 'string') throw appError('invalidInput');
   return value;
 }

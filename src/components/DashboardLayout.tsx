@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useI18n } from '../i18n/I18nContext';
+import LanguageSwitcher from './LanguageSwitcher';
 
 type DashboardLayoutProps = {
   title: string;
@@ -10,10 +12,11 @@ type DashboardLayoutProps = {
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, children }) => {
   const { user, logout } = useAuth();
+  const { t } = useI18n();
   const location = useLocation();
   const navigate = useNavigate();
   const displayName = user?.displayName?.trim() ? user.displayName : user?.username;
-  const roleLabel = user?.role === 'admin' ? 'Администратор' : 'Пользователь';
+  const roleLabel = user?.role === 'admin' ? t('roles.admin') : t('roles.user');
   const userInitial = (displayName?.[0] ?? '?').toUpperCase();
 
   const handleLogout = () => {
@@ -38,12 +41,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
           </div>
         </div>
 
-        <nav className="sidebar-nav" aria-label="Основная навигация">
+        <nav className="sidebar-nav" aria-label={t('nav.label')}>
           <Link
             to="/catalog"
             className={location.pathname === '/catalog' ? 'nav-link active' : 'nav-link'}
           >
-            {user?.role === 'admin' ? 'Управление каталогом' : 'Каталог'}
+            {user?.role === 'admin' ? t('nav.catalogAdmin') : t('nav.catalog')}
           </Link>
           {user?.role === 'admin' && (
             <>
@@ -51,7 +54,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
                 to="/genres"
                 className={location.pathname === '/genres' ? 'nav-link active' : 'nav-link'}
               >
-                Жанры
+                {t('nav.genres')}
               </Link>
             </>
           )}
@@ -59,12 +62,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
             to="/profile"
             className={location.pathname === '/profile' ? 'nav-link active' : 'nav-link'}
           >
-            Профиль
+            {t('nav.profile')}
           </Link>
         </nav>
 
         <div className="sidebar-footer">
-          <button className="btn btn-light sidebar-logout-btn" type="button" onClick={handleLogout}>Выйти</button>
+          <LanguageSwitcher className="sidebar-language-switcher" />
+          <button className="btn btn-light sidebar-logout-btn" type="button" onClick={handleLogout}>{t('nav.logout')}</button>
         </div>
       </aside>
 

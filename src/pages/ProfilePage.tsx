@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import DashboardLayout from '../components/DashboardLayout';
 import NoticeBanner from '../components/NoticeBanner';
 import { useAuth } from '../contexts/AuthContext';
-import { NoticeState, toUserErrorMessage } from '../shared/feedback';
+import { NoticeState } from '../shared/feedback';
+import { useI18n } from '../i18n/I18nContext';
 
 type ProfileFormState = {
   displayName: string;
@@ -51,6 +52,7 @@ const formatRussianPhone = (rawValue: string): string => {
 
 const ProfilePage: React.FC = () => {
   const { user, updateUser } = useAuth();
+  const { t, errorText } = useI18n();
   const [form, setForm] = useState<ProfileFormState>({
     displayName: '',
     email: '',
@@ -114,11 +116,11 @@ const ProfilePage: React.FC = () => {
       if (!iconDataUrl) return;
 
       setForm(prev => ({ ...prev, iconPath: iconDataUrl }));
-      setNotice({ type: 'success', text: 'Иконка профиля загружена.' });
+      setNotice({ type: 'success', text: t('profile.iconUploaded') });
     } catch (err) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось загрузить иконку профиля.')
+        text: errorText(err, 'profile.iconUploadFailed')
       });
     }
   };
@@ -143,11 +145,11 @@ const ProfilePage: React.FC = () => {
       });
 
       updateUser(updatedUser);
-      setNotice({ type: 'success', text: 'Профиль сохранен.' });
+      setNotice({ type: 'success', text: t('profile.saved') });
     } catch (err) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось сохранить профиль.')
+        text: errorText(err, 'profile.saveFailed')
       });
     } finally {
       setSaving(false);
@@ -159,14 +161,14 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <DashboardLayout title="Профиль" subtitle="Настройте публичное имя и контактные данные">
+    <DashboardLayout title={t('profile.title')} subtitle={t('profile.subtitle')}>
       {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
       <section className="profile-layout">
         <article className="panel-card profile-summary-card">
           <div className="profile-avatar-wrap">
             {form.iconPath ? (
-              <img className="profile-avatar" src={form.iconPath} alt="Иконка профиля" />
+              <img className="profile-avatar" src={form.iconPath} alt={t('profile.avatarAlt')} />
             ) : (
               <div className="profile-avatar profile-avatar-placeholder" aria-hidden="true">
                 {(displayNamePreview || user.username).slice(0, 1).toUpperCase()}
@@ -176,16 +178,16 @@ const ProfilePage: React.FC = () => {
 
           <div className="profile-summary-text">
             <h3>{displayNamePreview}</h3>
-            <p>Логин: {user.username}</p>
-            <p>Роль: {user.role === 'admin' ? 'Администратор' : 'Пользователь'}</p>
+            <p>{t('profile.loginLine', { username: user.username })}</p>
+            <p>{t('profile.roleLine', { role: user.role === 'admin' ? t('roles.admin') : t('roles.user') })}</p>
           </div>
 
           <div className="row-actions">
             <button className="btn btn-light" type="button" onClick={handleUploadIcon}>
-              Загрузить иконку с ПК
+              {t('profile.uploadIcon')}
             </button>
             <button className="btn btn-light" type="button" onClick={handleRemoveIcon}>
-              Убрать иконку
+              {t('profile.removeIcon')}
             </button>
           </div>
         </article>
@@ -193,12 +195,12 @@ const ProfilePage: React.FC = () => {
         <article className="panel-card">
           <form onSubmit={handleSubmit} className="profile-form">
             <label className="field-wrap" htmlFor="profile-username">
-              <span>Логин</span>
+              <span>{t('profile.login')}</span>
               <input className="input" id="profile-username" value={user.username} readOnly />
             </label>
 
             <label className="field-wrap" htmlFor="displayName">
-              <span>Ник</span>
+              <span>{t('profile.displayName')}</span>
               <input
                 className="input"
                 id="displayName"
@@ -210,7 +212,7 @@ const ProfilePage: React.FC = () => {
             </label>
 
             <label className="field-wrap" htmlFor="email">
-              <span>Почта</span>
+              <span>{t('profile.email')}</span>
               <input
                 className="input"
                 id="email"
@@ -224,7 +226,7 @@ const ProfilePage: React.FC = () => {
             </label>
 
             <label className="field-wrap" htmlFor="phone">
-              <span>Телефон</span>
+              <span>{t('profile.phone')}</span>
               <input
                 className="input"
                 id="phone"
@@ -241,7 +243,7 @@ const ProfilePage: React.FC = () => {
 
             <div className="profile-form-actions">
               <button className="btn" type="submit" disabled={saving}>
-                {saving ? 'Сохранение...' : 'Сохранить профиль'}
+                {saving ? t('profile.saving') : t('profile.save')}
               </button>
             </div>
           </form>

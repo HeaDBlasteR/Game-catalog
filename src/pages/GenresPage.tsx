@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { Genre } from '../shared/types';
 import NoticeBanner from '../components/NoticeBanner';
 import ConfirmModal from '../components/ConfirmModal';
-import { NoticeState, toUserErrorMessage } from '../shared/feedback';
+import { NoticeState } from '../shared/feedback';
+import { useI18n } from '../i18n/I18nContext';
 
 type GenreFormState = {
   name: string;
@@ -18,6 +19,7 @@ const EMPTY_GENRE_FORM: GenreFormState = {
 
 const GenresPage: React.FC = () => {
   const { user } = useAuth();
+  const { t, errorText, genreDescription } = useI18n();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [createForm, setCreateForm] = useState<GenreFormState>(EMPTY_GENRE_FORM);
   const [editForm, setEditForm] = useState<GenreFormState>(EMPTY_GENRE_FORM);
@@ -37,7 +39,7 @@ const GenresPage: React.FC = () => {
     } catch (err: any) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось загрузить список жанров.')
+        text: errorText(err, 'genres.loadFailed')
       });
     }
   };
@@ -72,12 +74,12 @@ const GenresPage: React.FC = () => {
     try {
       await window.electronAPI.addGenre(createForm);
       handleCreateModalClose();
-      setNotice({ type: 'success', text: 'Жанр добавлен.' });
+      setNotice({ type: 'success', text: t('genres.added') });
       await fetchGenres();
     } catch (err: any) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось добавить жанр.')
+        text: errorText(err, 'genres.addFailed')
       });
     }
   };
@@ -89,12 +91,12 @@ const GenresPage: React.FC = () => {
     try {
       await window.electronAPI.updateGenre(editingGenre.id, editForm);
       handleEditModalClose();
-      setNotice({ type: 'success', text: 'Жанр обновлен.' });
+      setNotice({ type: 'success', text: t('genres.updated') });
       await fetchGenres();
     } catch (err: any) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось обновить жанр.')
+        text: errorText(err, 'genres.updateFailed')
       });
     }
   };
@@ -111,12 +113,12 @@ const GenresPage: React.FC = () => {
 
     try {
       await window.electronAPI.deleteGenre(genreToDelete.id);
-      setNotice({ type: 'success', text: 'Жанр удален.' });
+      setNotice({ type: 'success', text: t('genres.deleted') });
       await fetchGenres();
     } catch (err: any) {
       setNotice({
         type: 'error',
-        text: toUserErrorMessage(err, 'Не удалось удалить жанр.')
+        text: errorText(err, 'genres.deleteFailed')
       });
     } finally {
       setGenreToDelete(null);
@@ -128,41 +130,41 @@ const GenresPage: React.FC = () => {
   }
 
   return (
-    <DashboardLayout title="Жанры" subtitle="Создание, редактирование и удаление жанров">
+    <DashboardLayout title={t('genres.title')} subtitle={t('genres.subtitle')}>
       {notice && <NoticeBanner notice={notice} onClose={() => setNotice(null)} />}
 
       <ConfirmModal
         isOpen={Boolean(genreToDelete)}
-        title="Удалить жанр?"
-        message={genreToDelete ? `Жанр \"${genreToDelete.name}\" будет удален.` : ''}
-        confirmText="Удалить"
+        title={t('genres.deleteTitle')}
+        message={genreToDelete ? t('genres.deleteMessage', { name: genreToDelete.name }) : ''}
+        confirmText={t('common.delete')}
         onConfirm={handleGenreDelete}
         onCancel={() => setGenreToDelete(null)}
       />
 
       <section className="panel-card">
         <div className="panel-header">
-          <h2>Управление жанрами</h2>
-          <button className="btn" type="button" onClick={handleCreateModalOpen}>Создать жанр</button>
+          <h2>{t('genres.manage')}</h2>
+          <button className="btn" type="button" onClick={handleCreateModalOpen}>{t('genres.create')}</button>
         </div>
 
         <div className="table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Название</th>
-                <th>Описание</th>
-                <th>Действия</th>
+                <th>{t('genres.colName')}</th>
+                <th>{t('genres.colDescription')}</th>
+                <th>{t('genres.colActions')}</th>
               </tr>
             </thead>
             <tbody>
               {genres.map(genre => (
                 <tr key={genre.id}>
                   <td>{genre.name}</td>
-                  <td>{genre.description || '-'}</td>
+                  <td>{genreDescription(genre.name, genre.description) || '-'}</td>
                   <td className="row-actions">
-                    <button className="btn btn-light" type="button" onClick={() => handleEditModalOpen(genre)}>Редактировать</button>
-                    <button className="btn btn-danger" type="button" onClick={() => handleGenreDeleteRequest(genre.id)}>Удалить</button>
+                    <button className="btn btn-light" type="button" onClick={() => handleEditModalOpen(genre)}>{t('common.edit')}</button>
+                    <button className="btn btn-danger" type="button" onClick={() => handleGenreDeleteRequest(genre.id)}>{t('common.delete')}</button>
                   </td>
                 </tr>
               ))}
@@ -173,12 +175,12 @@ const GenresPage: React.FC = () => {
 
       {isCreateModalOpen && (
         <div className="rating-modal-overlay" role="presentation">
-          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label="Создание жанра">
-            <h2>Создать жанр</h2>
+          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label={t('genres.createLabel')}>
+            <h2>{t('genres.create')}</h2>
             <form onSubmit={handleCreateSubmit} className="admin-form compact-form">
               <div className="form-grid">
                 <label className="field-wrap" htmlFor="genreCreateName">
-                  <span>Название жанра*</span>
+                  <span>{t('genres.fieldName')}</span>
                   <input
                     className="input"
                     id="genreCreateName"
@@ -189,7 +191,7 @@ const GenresPage: React.FC = () => {
                   />
                 </label>
                 <label className="field-wrap" htmlFor="genreCreateDescription">
-                  <span>Описание</span>
+                  <span>{t('genres.fieldDescription')}</span>
                   <input
                     className="input"
                     id="genreCreateDescription"
@@ -200,8 +202,8 @@ const GenresPage: React.FC = () => {
                 </label>
               </div>
               <div className="modal-actions">
-                <button className="btn" type="submit">Сохранить</button>
-                <button className="btn btn-light" type="button" onClick={handleCreateModalClose}>Отмена</button>
+                <button className="btn" type="submit">{t('common.save')}</button>
+                <button className="btn btn-light" type="button" onClick={handleCreateModalClose}>{t('common.cancel')}</button>
               </div>
             </form>
           </div>
@@ -210,12 +212,12 @@ const GenresPage: React.FC = () => {
 
       {editingGenre && (
         <div className="rating-modal-overlay" role="presentation">
-          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label="Редактирование жанра">
-            <h2>Редактировать жанр</h2>
+          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label={t('genres.editLabel')}>
+            <h2>{t('genres.editTitle')}</h2>
             <form onSubmit={handleEditSubmit} className="admin-form compact-form">
               <div className="form-grid">
                 <label className="field-wrap" htmlFor="genreEditName">
-                  <span>Название жанра*</span>
+                  <span>{t('genres.fieldName')}</span>
                   <input
                     className="input"
                     id="genreEditName"
@@ -226,7 +228,7 @@ const GenresPage: React.FC = () => {
                   />
                 </label>
                 <label className="field-wrap" htmlFor="genreEditDescription">
-                  <span>Описание</span>
+                  <span>{t('genres.fieldDescription')}</span>
                   <input
                     className="input"
                     id="genreEditDescription"
@@ -237,8 +239,8 @@ const GenresPage: React.FC = () => {
                 </label>
               </div>
               <div className="modal-actions">
-                <button className="btn" type="submit">Сохранить</button>
-                <button className="btn btn-light" type="button" onClick={handleEditModalClose}>Отмена</button>
+                <button className="btn" type="submit">{t('common.save')}</button>
+                <button className="btn btn-light" type="button" onClick={handleEditModalClose}>{t('common.cancel')}</button>
               </div>
             </form>
           </div>

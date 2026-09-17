@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { NoticeState } from '../shared/feedback';
+import { useI18n } from '../i18n/I18nContext';
 
 type NoticeBannerProps = {
   notice: NoticeState;
@@ -9,6 +10,8 @@ type NoticeBannerProps = {
 const AUTO_HIDE_MS = 5000;
 
 const NoticeBanner: React.FC<NoticeBannerProps> = ({ notice, onClose }) => {
+  const { t } = useI18n();
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       onClose();
@@ -24,10 +27,10 @@ const NoticeBanner: React.FC<NoticeBannerProps> = ({ notice, onClose }) => {
 
   if (isError) {
     return (
-      <div className="toast-container" role="region" aria-label="Уведомления">
+      <div className="toast-container" role="region" aria-label={t('notice.region')}>
         <div className={className} role="alert" aria-live="assertive">
           <p>{notice.text}</p>
-          <button type="button" className="toast-close" onClick={onClose} aria-label="Закрыть уведомление">
+          <button type="button" className="toast-close" onClick={onClose} aria-label={t('notice.close')}>
             &times;
           </button>
         </div>
@@ -36,10 +39,10 @@ const NoticeBanner: React.FC<NoticeBannerProps> = ({ notice, onClose }) => {
   }
 
   return (
-    <div className="toast-container" role="region" aria-label="Уведомления">
+    <div className="toast-container" role="region" aria-label={t('notice.region')}>
       <div className={className} role="status" aria-live="polite">
         <p>{notice.text}</p>
-        <button type="button" className="toast-close" onClick={onClose} aria-label="Закрыть уведомление">
+        <button type="button" className="toast-close" onClick={onClose} aria-label={t('notice.close')}>
           &times;
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import { gameDb, genreDb } from '../database-service';
 import { assertId, assertString, requireAdmin } from '../session';
+import { appError } from '../../src/shared/app-error';
 
 type GenreInput = { name: string; description?: string };
 
@@ -15,37 +16,37 @@ type GameInput = {
 };
 
 function validateGenreInput(input: GenreInput) {
-  if (!input || typeof input !== 'object') throw new Error('Некорректные данные жанра');
-  const name = assertString(input.name, 'Название жанра');
-  const description = input.description === undefined ? '' : assertString(input.description, 'Описание');
+  if (!input || typeof input !== 'object') throw appError('invalidInput');
+  const name = assertString(input.name);
+  const description = input.description === undefined ? '' : assertString(input.description);
   return { name, description };
 }
 
 function validateGameInput(input: any, partial: true): Partial<GameInput>;
 function validateGameInput(input: any, partial: false): GameInput;
 function validateGameInput(input: any, partial: boolean): Partial<GameInput> {
-  if (!input || typeof input !== 'object') throw new Error('Некорректные данные игры');
+  if (!input || typeof input !== 'object') throw appError('invalidInput');
 
   const result: Partial<GameInput> = {};
   const requiredText = ['title', 'developer', 'releaseDate', 'filePath'] as const;
 
   for (const field of requiredText) {
     if (input[field] === undefined && partial) continue;
-    const value = assertString(input[field], field).trim();
-    if (!value) throw new Error('Заполните все обязательные поля');
+    const value = assertString(input[field]).trim();
+    if (!value) throw appError('requiredFields');
     result[field] = value;
   }
 
   if (input.description !== undefined) {
-    result.description = input.description === null ? null : assertString(input.description, 'description');
+    result.description = input.description === null ? null : assertString(input.description);
   }
 
   if (input.iconPath !== undefined) {
-    result.iconPath = input.iconPath === null ? null : assertString(input.iconPath, 'iconPath');
+    result.iconPath = input.iconPath === null ? null : assertString(input.iconPath);
   }
 
   if (input.genreIds !== undefined || !partial) {
-    if (!Array.isArray(input.genreIds)) throw new Error('Выберите хотя бы один жанр');
+    if (!Array.isArray(input.genreIds)) throw appError('genreRequired');
     result.genreIds = input.genreIds.map(assertId);
   }
 

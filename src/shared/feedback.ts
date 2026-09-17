@@ -1,3 +1,6 @@
+import { parseAppErrorCode } from './app-error';
+import type { TranslationKey } from '../i18n/translations';
+
 export type NoticeType = 'success' | 'error' | 'info';
 
 export type NoticeState = {
@@ -5,26 +8,25 @@ export type NoticeState = {
   text: string;
 };
 
-const DEFAULT_ERROR_MESSAGE = 'Не удалось выполнить операцию. Попробуйте еще раз.';
-
-export function toUserErrorMessage(error: unknown, fallback = DEFAULT_ERROR_MESSAGE): string {
+export function toUserErrorMessage(
+  error: unknown,
+  fallback: TranslationKey,
+  t: (key: TranslationKey) => string
+): string {
   const message = stripIpcPrefix(extractErrorMessage(error)).trim();
   const raw = message.toLowerCase();
 
   if (!raw) {
-    return fallback;
+    return t(fallback);
   }
 
-  if (/[а-яё]/i.test(message)) {
-    return /[.!?]$/.test(message) ? message : `${message}.`;
-  }
-
-  if (raw.includes('already exists')) {
-    return 'Пользователь с таким именем уже существует.';
+  const code = parseAppErrorCode(message);
+  if (code) {
+    return t(`errors.${code}`);
   }
 
   if (raw.includes('not found')) {
-    return 'Запрошенные данные не найдены.';
+    return t('common.notFound');
   }
 
   if (
@@ -33,10 +35,10 @@ export function toUserErrorMessage(error: unknown, fallback = DEFAULT_ERROR_MESS
     raw.includes('constraint') ||
     raw.includes('sqlite_constraint')
   ) {
-    return 'Проверьте введенные данные и повторите попытку.';
+    return t('common.checkInput');
   }
 
-  return fallback;
+  return t(fallback);
 }
 
 function stripIpcPrefix(message: string): string {

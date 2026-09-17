@@ -21,6 +21,7 @@ type ElectronAPI = {
   login: (username: string, password: string) => Promise<AppUser>;
   register: (username: string, password: string) => Promise<AppUser>;
   logout: () => Promise<{ success: true }>;
+  setLanguage: (language: 'ru' | 'en') => Promise<void>;
   getProfile: () => Promise<AppUser>;
   uploadProfileIconFromPC: () => Promise<string | null>;
   updateProfile: (profileData: ProfileUpdateInput) => Promise<AppUser>;

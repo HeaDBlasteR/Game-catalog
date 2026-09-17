@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useI18n } from '../i18n/I18nContext';
 
 type ConfirmModalProps = {
   isOpen: boolean;
@@ -15,12 +16,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   title,
   message,
-  confirmText = 'Удалить',
-  cancelText = 'Отмена',
+  confirmText,
+  cancelText,
   confirmClassName = 'btn btn-danger',
   onConfirm,
   onCancel
 }) => {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -52,8 +55,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         <h2>{title}</h2>
         <p className="modal-subtitle confirm-modal-message">{message}</p>
         <div className="modal-actions confirm-modal-actions">
-          <button className={confirmClassName} type="button" onClick={onConfirm}>{confirmText}</button>
-          <button className="btn btn-light" type="button" onClick={onCancel}>{cancelText}</button>
+          <button className={confirmClassName} type="button" onClick={onConfirm}>{confirmText ?? t('common.delete')}</button>
+          <button className="btn btn-light" type="button" onClick={onCancel}>{cancelText ?? t('common.cancel')}</button>
         </div>
       </div>
     </div>

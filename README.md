@@ -4,8 +4,6 @@ A desktop app for managing a game library. Users can launch games straight from 
 
 Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite** via **TypeORM**.
 
-> The user interface is in Russian.
-
 ## Features
 
 ### User
@@ -16,6 +14,7 @@ Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite
 - rate games from 1 to 5 stars, with the average rating recalculated automatically;
 - set a personal icon for any game, visible only to that user;
 - edit the profile: nickname, email, phone number with a `+7 (XXX) XXX-XX-XX` mask, avatar.
+- switch the interface language between English and Russian; the choice is remembered.
 
 ### Administrator
 
@@ -49,11 +48,13 @@ electron/
   session.ts              user session and permission checks
   ipc/                    IPC handlers
   services/               default genres
+  i18n.ts                 translations for system dialogs
 src/
   entities/               TypeORM entities: User, Game, Genre, UserRating, UserGameIcon
   pages/                  Catalog, Genres, Profile, Login, Register
   components/             game card, modals, notifications, layout
   contexts/AuthContext    authentication state
+  i18n/                   translations and language context
   shared/                 shared types and error handling
 ```
 

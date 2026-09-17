@@ -4,6 +4,8 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { assertId, requireAdmin, requireUser } from '../session';
+import { appError } from '../../src/shared/app-error';
+import { mt } from '../i18n';
 
 async function runGame(filePath: string): Promise<void> {
   if (path.extname(filePath).toLowerCase() !== '.exe') {
@@ -44,13 +46,13 @@ export function registerGamesHandlers() {
 
   ipcMain.handle('games:uploadIconFromPC', async (event, scope: 'admin' | 'user') => {
     try {
-      if (scope !== 'admin' && scope !== 'user') throw new Error('Некорректный тип иконки');
+      if (scope !== 'admin' && scope !== 'user') throw appError('invalidInput');
       const user = scope === 'admin' ? await requireAdmin(event) : await requireUser(event);
 
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        title: 'Выберите иконку игры',
+        title: mt('gameIconDialogTitle'),
         properties: ['openFile'],
-        filters: [{ name: 'Иконки', extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg', 'ico'] }]
+        filters: [{ name: mt('iconFilterName'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg', 'ico'] }]
       });
 
       if (canceled || !filePaths.length) {
@@ -66,10 +68,10 @@ export function registerGamesHandlers() {
   ipcMain.handle('games:setUserIcon', async (event, gameId: number, iconPath: string | null) => {
     try {
       const user = await requireUser(event);
-      if (iconPath !== null && typeof iconPath !== 'string') throw new Error('Некорректный формат иконки');
+      if (iconPath !== null && typeof iconPath !== 'string') throw appError('iconInvalidFormat');
 
       const game = await gameDb.getById(assertId(gameId));
-      if (!game) throw new Error('Игра не найдена');
+      if (!game) throw appError('gameNotFound');
 
       await gameDb.setUserIcon(user.id, game.id, iconPath);
       return { success: true };
@@ -82,11 +84,11 @@ export function registerGamesHandlers() {
     try {
       await requireUser(event);
       const game = await gameDb.getById(assertId(gameId));
-      if (!game) throw new Error('Игра не найдена');
+      if (!game) throw appError('gameNotFound');
 
       const filePath = game.filePath.trim().replace(/^"(.*)"$/, '$1');
       if (!filePath || !path.isAbsolute(filePath) || !fs.existsSync(filePath)) {
-        throw new Error('Файл игры не найден. Проверьте путь к исполняемому файлу');
+        throw appError('gameFileNotFound');
       }
 
       await runGame(filePath);

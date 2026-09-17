@@ -2,6 +2,8 @@ import { dialog, ipcMain } from 'electron';
 import { AppDataSource } from '../data-source';
 import { gameDb } from '../database-service';
 import { User } from '../../src/entities/User';
+import { appError } from '../../src/shared/app-error';
+import { mt } from '../i18n';
 import { assertString, clearSession, requireUser, setSessionUser } from '../session';
 
 const ICON_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
@@ -48,21 +50,21 @@ function validateProfileIconPath(iconPath?: string | null): string | null {
 
   const match = /^data:([^;]+);base64,([A-Za-z0-9+/=]+)$/.exec(trimmed);
   if (!match) {
-    throw new Error('Некорректный формат data URL для иконки профиля');
+    throw appError('iconInvalidFormat');
   }
 
   const mimeType = match[1].toLowerCase();
   if (!ALLOWED_ICON_MIME_TYPES.has(mimeType)) {
-    throw new Error('Неподдерживаемый формат иконки профиля');
+    throw appError('iconUnsupportedType');
   }
 
   const binary = Buffer.from(match[2], 'base64');
   if (!binary.length) {
-    throw new Error('Иконка профиля не содержит данных');
+    throw appError('iconEmpty');
   }
 
   if (binary.length > ICON_UPLOAD_MAX_BYTES) {
-    throw new Error('Иконка слишком большая. Максимальный размер: 5 МБ');
+    throw appError('iconTooLarge');
   }
 
   return `data:${mimeType};base64,${binary.toString('base64')}`;
@@ -72,10 +74,10 @@ export function registerAuthHandlers() {
   ipcMain.handle('auth:login', async (event, username: string, password: string) => {
     try {
       const userRepo = AppDataSource.getRepository(User);
-      const normalizedUsername = assertString(username, 'Имя пользователя').trim();
+      const normalizedUsername = assertString(username).trim();
       const user = normalizedUsername ? await userRepo.findOneBy({ username: normalizedUsername }) : null;
-      if (!user || !(await user.checkPassword(assertString(password, 'Пароль')))) {
-        throw new Error('Неверное имя пользователя или пароль');
+      if (!user || !(await user.checkPassword(assertString(password)))) {
+        throw appError('invalidCredentials');
       }
       setSessionUser(event, user.id);
       return toPublicUser(user);
@@ -86,15 +88,15 @@ export function registerAuthHandlers() {
 
   ipcMain.handle('auth:register', async (event, username: string, password: string) => {
     try {
-      const normalizedUsername = assertString(username, 'Имя пользователя').trim();
-      if (!normalizedUsername) throw new Error('Имя пользователя обязательно');
-      if (normalizedUsername.length > 64) throw new Error('Имя пользователя не должно быть длиннее 64 символов');
-      if (!assertString(password, 'Пароль')) throw new Error('Пароль обязателен');
-      if (Buffer.byteLength(password) > 72) throw new Error('Пароль слишком длинный');
+      const normalizedUsername = assertString(username).trim();
+      if (!normalizedUsername) throw appError('usernameRequired');
+      if (normalizedUsername.length > 64) throw appError('usernameTooLong');
+      if (!assertString(password)) throw appError('passwordRequired');
+      if (Buffer.byteLength(password) > 72) throw appError('passwordTooLong');
 
       const userRepo = AppDataSource.getRepository(User);
       const existing = await userRepo.findOneBy({ username: normalizedUsername });
-      if (existing) throw new Error('Пользователь с таким именем уже существует');
+      if (existing) throw appError('usernameTaken');
       const user = new User();
       user.username = normalizedUsername;
       await user.setPassword(password);
@@ -126,9 +128,9 @@ export function registerAuthHandlers() {
       const user = await requireUser(event);
 
       const { canceled, filePaths } = await dialog.showOpenDialog({
-        title: 'Выберите иконку профиля',
+        title: mt('profileIconDialogTitle'),
         properties: ['openFile'],
-        filters: [{ name: 'Иконки', extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg', 'ico'] }]
+        filters: [{ name: mt('iconFilterName'), extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg', 'ico'] }]
       });
 
       if (canceled || !filePaths.length) {
@@ -145,7 +147,7 @@ export function registerAuthHandlers() {
     try {
       const userRepo = AppDataSource.getRepository(User);
       const user = await requireUser(event);
-      if (!input || typeof input !== 'object') throw new Error('Некорректные данные профиля');
+      if (!input || typeof input !== 'object') throw appError('invalidInput');
 
       if ('displayName' in input) {
         user.displayName = normalizeNullableText(input.displayName, 64);

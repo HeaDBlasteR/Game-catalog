@@ -121,6 +121,55 @@ a:hover {
   width: 100%;
 }
 
+.language-switcher {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-root);
+}
+
+.language-option {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.language-option:hover {
+  color: var(--text-primary);
+}
+
+.language-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.sidebar-language-switcher {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+.sidebar-language-switcher .language-option {
+  flex: 1;
+}
+
+.auth-card {
+  position: relative;
+}
+
+.auth-language-switcher {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
 .nav-link {
   border-radius: 10px;
   padding: 10px 12px;

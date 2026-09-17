@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
   register: (username: string, password: string) => ipcRenderer.invoke('auth:register', username, password),
   logout: () => ipcRenderer.invoke('auth:logout'),
+  setLanguage: (language: 'ru' | 'en') => ipcRenderer.invoke('app:setLanguage', language),
   getProfile: () => ipcRenderer.invoke('auth:getProfile'),
   uploadProfileIconFromPC: () => ipcRenderer.invoke('auth:uploadProfileIconFromPC'),
   updateProfile: (profileData: any) => ipcRenderer.invoke('auth:updateProfile', profileData),

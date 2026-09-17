@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext } from 'react';
-import { toUserErrorMessage } from '../shared/feedback';
 
 interface User {
   id: number;
@@ -25,23 +24,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
 
   const login = async (username: string, password: string): Promise<User> => {
-    try {
-      const userData = await window.electronAPI.login(username, password);
-      setUser(userData);
-      return userData;
-    } catch (err: any) {
-      throw new Error(toUserErrorMessage(err, 'Не удалось войти в систему.'));
-    }
+    const userData = await window.electronAPI.login(username, password);
+    setUser(userData);
+    return userData;
   };
 
   const register = async (username: string, password: string): Promise<User> => {
-    try {
-      const userData = await window.electronAPI.register(username, password);
-      setUser(userData);
-      return userData;
-    } catch (err: any) {
-      throw new Error(toUserErrorMessage(err, 'Не удалось зарегистрироваться.'));
-    }
+    const userData = await window.electronAPI.register(username, password);
+    setUser(userData);
+    return userData;
   };
 
   const logout = () => {

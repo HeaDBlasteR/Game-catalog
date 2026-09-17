@@ -8,6 +8,7 @@ import { UserRating } from '../src/entities/UserRating';
 import { Genre } from '../src/entities/Genre';
 import { UserGameIcon } from '../src/entities/UserGameIcon';
 import { UserRole } from '../src/shared/types';
+import { appError } from '../src/shared/app-error';
 
 const ICON_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 const ALLOWED_ICON_MIME_TYPES = new Set([
@@ -84,7 +85,7 @@ export const gameDb = {
 
     const genres = await genreRepo.findBy({ id: In(gameData.genreIds || []) });
     if (!genres.length) {
-      throw new Error('Выберите хотя бы один жанр');
+      throw appError('genreRequired');
     }
 
     const normalizedIconPath = await validateIconPath(gameData.iconPath);
@@ -106,7 +107,7 @@ export const gameDb = {
     const genreRepo = AppDataSource.getRepository(Genre);
 
     const game = await gameRepo.findOne({ where: { id }, relations: ['genres'] });
-    if (!game) throw new Error('Игра не найдена');
+    if (!game) throw appError('gameNotFound');
 
     if (typeof updates.title === 'string') game.title = updates.title;
     if (updates.description !== undefined) game.description = updates.description;
@@ -120,7 +121,7 @@ export const gameDb = {
     if (updates.genreIds !== undefined) {
       const genres = await genreRepo.findBy({ id: In(updates.genreIds) });
       if (!genres.length) {
-        throw new Error('Выберите хотя бы один жанр');
+        throw appError('genreRequired');
       }
       game.genres = genres;
     }
@@ -155,16 +156,16 @@ export const gameDb = {
     const extension = path.extname(sourceFilePath).toLowerCase();
     const mimeType = ICON_EXTENSION_TO_MIME[extension];
     if (!mimeType) {
-      throw new Error('Неподдерживаемый формат иконки');
+      throw appError('iconUnsupportedType');
     }
 
     if (scope === 'user' && !userId) {
-      throw new Error('Для пользовательской иконки требуется userId');
+      throw appError('invalidInput');
     }
 
     const buffer = await fs.promises.readFile(sourceFilePath);
     if (buffer.length > ICON_UPLOAD_MAX_BYTES) {
-      throw new Error('Иконка слишком большая. Максимальный размер: 5 МБ');
+      throw appError('iconTooLarge');
     }
 
     return buildIconDataUrl(buffer, mimeType);
@@ -179,10 +180,10 @@ export const genreDb = {
   create: async (name: string, description: string = ''): Promise<Genre> => {
     const repo = AppDataSource.getRepository(Genre);
     const normalizedName = name.trim();
-    if (!normalizedName) throw new Error('Название жанра обязательно');
+    if (!normalizedName) throw appError('genreNameRequired');
 
     const exists = await repo.findOneBy({ name: normalizedName });
-    if (exists) throw new Error('Жанр с таким названием уже существует');
+    if (exists) throw appError('genreNameTaken');
 
     const genre = repo.create({
       name: normalizedName,
@@ -193,13 +194,13 @@ export const genreDb = {
   update: async (id: number, name: string, description: string = ''): Promise<Genre> => {
     const repo = AppDataSource.getRepository(Genre);
     const genre = await repo.findOneBy({ id });
-    if (!genre) throw new Error('Жанр не найден');
+    if (!genre) throw appError('genreNotFound');
 
     const normalizedName = name.trim();
-    if (!normalizedName) throw new Error('Название жанра обязательно');
+    if (!normalizedName) throw appError('genreNameRequired');
 
     const exists = await repo.findOneBy({ name: normalizedName });
-    if (exists && exists.id !== id) throw new Error('Жанр с таким названием уже существует');
+    if (exists && exists.id !== id) throw appError('genreNameTaken');
 
     genre.name = normalizedName;
     genre.description = description.trim();
@@ -210,7 +211,7 @@ export const genreDb = {
     await AppDataSource.transaction(async manager => {
       const genreRepo = manager.getRepository(Genre);
       const genre = await genreRepo.findOne({ where: { id }, relations: ['games'] });
-      if (!genre) throw new Error('Жанр не найден');
+      if (!genre) throw appError('genreNotFound');
 
       if (genre.games.length) {
         await manager
@@ -318,27 +319,27 @@ async function validateIconPath(iconPath?: string | null): Promise<string | null
     return validateDataUrlIcon(normalized);
   }
 
-  throw new Error('Некорректный формат иконки');
+  throw appError('iconInvalidFormat');
 }
 
 function validateDataUrlIcon(iconDataUrl: string): string {
   const match = /^data:([^;]+);base64,([A-Za-z0-9+/=]+)$/.exec(iconDataUrl);
   if (!match) {
-    throw new Error('Некорректный формат data URL для иконки');
+    throw appError('iconInvalidFormat');
   }
 
   const mimeType = match[1].toLowerCase();
   if (!ALLOWED_ICON_MIME_TYPES.has(mimeType)) {
-    throw new Error('Неподдерживаемый MIME-тип иконки');
+    throw appError('iconUnsupportedType');
   }
 
   const binary = Buffer.from(match[2], 'base64');
   if (!binary.length) {
-    throw new Error('Иконка не содержит данных');
+    throw appError('iconEmpty');
   }
 
   if (binary.length > ICON_UPLOAD_MAX_BYTES) {
-    throw new Error('Иконка слишком большая. Максимальный размер: 5 МБ');
+    throw appError('iconTooLarge');
   }
 
   return `data:${mimeType};base64,${binary.toString('base64')}`;

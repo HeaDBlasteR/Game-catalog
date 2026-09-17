@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { toUserErrorMessage } from '../shared/feedback';
+import { useI18n } from '../i18n/I18nContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<unknown>(null);
   const { login } = useAuth();
+  const { t, errorText } = useI18n();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,25 +18,26 @@ const LoginPage: React.FC = () => {
       const userData = await login(username, password);
       navigate(userData.role === 'admin' ? '/admin' : '/catalog');
     } catch (err: any) {
-      setError(toUserErrorMessage(err, 'Не удалось войти в систему.'));
+      setError(err);
     }
   };
 
   return (
     <div className="auth-shell">
       <div className="auth-hero" aria-hidden="true">
-        <h1>Game Catalog</h1>
-        <p>Войдите, чтобы получить доступ к каталогу и панели управления.</p>
+        <h1>{t('common.appName')}</h1>
+        <p>{t('login.heroText')}</p>
       </div>
 
       <div className="auth-card">
-        <h2>Вход</h2>
-        <p className="auth-description">Используйте учетные данные для доступа к каталогу.</p>
-        {error && <p className="error-text">{error}</p>}
+        <LanguageSwitcher className="auth-language-switcher" />
+        <h2>{t('login.title')}</h2>
+        <p className="auth-description">{t('login.description')}</p>
+        {error !== null && <p className="error-text">{errorText(error, 'login.failed')}</p>}
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label className="field-wrap" htmlFor="login-username">
-            <span>Имя пользователя</span>
+            <span>{t('login.username')}</span>
             <input
               className="input"
               id="login-username"
@@ -46,7 +49,7 @@ const LoginPage: React.FC = () => {
           </label>
 
           <label className="field-wrap" htmlFor="login-password">
-            <span>Пароль</span>
+            <span>{t('login.password')}</span>
             <input
               className="input"
               id="login-password"
@@ -57,11 +60,11 @@ const LoginPage: React.FC = () => {
             />
           </label>
 
-          <button className="btn auth-submit" type="submit">Войти</button>
+          <button className="btn auth-submit" type="submit">{t('login.submit')}</button>
         </form>
 
         <p className="auth-link-row">
-          Нет аккаунта? <Link to="/register">Зарегистрироваться</Link>
+          {t('login.noAccount')} <Link to="/register">{t('login.toRegister')}</Link>
         </p>
       </div>
     </div>
