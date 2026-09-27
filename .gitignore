@@ -103,3 +103,7 @@ vite.config.ts.timestamp-*
 .vite/
 
 data.db*
+
+tests/.artifacts/
+
+release/

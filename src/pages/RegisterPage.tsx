@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useI18n } from '../i18n/I18nContext';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import ThemeSwitcher from '../components/ThemeSwitcher';
 
 const RegisterPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -30,7 +31,10 @@ const RegisterPage: React.FC = () => {
       </div>
 
       <div className="auth-card">
-        <LanguageSwitcher className="auth-language-switcher" />
+        <div className="auth-preferences">
+          <LanguageSwitcher />
+          <ThemeSwitcher />
+        </div>
         <h2>{t('register.title')}</h2>
         <p className="auth-description">{t('register.description')}</p>
         {error !== null && <p className="error-text">{errorText(error, 'register.failed')}</p>}

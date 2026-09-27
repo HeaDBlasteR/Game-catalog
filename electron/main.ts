@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { app, BrowserWindow, dialog } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { AppDataSource } from './data-source';
 import { User } from '../src/entities/User';
 import { registerAuthHandlers } from './ipc/auth';
@@ -25,10 +26,16 @@ async function createDefaultAdmin() {
   }
 }
 
+function resolveWindowIcon(): string | undefined {
+  const iconPath = path.join(__dirname, '../../build/icon.ico');
+  return fs.existsSync(iconPath) ? iconPath : undefined;
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
+    icon: resolveWindowIcon(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

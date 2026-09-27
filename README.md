@@ -2,7 +2,21 @@
 
 A desktop app for managing a game library. Users can launch games straight from the catalog, rate them, customize icons and edit their profile. An administrator manages the catalog and genres.
 
+[![CI](https://github.com/HeaDBlasteR/Game-catalog/actions/workflows/ci.yml/badge.svg)](https://github.com/HeaDBlasteR/Game-catalog/actions/workflows/ci.yml)
+
 Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite** via **TypeORM**.
+
+The interface is available in English and Russian, in a light and a dark theme, and both can be switched at any time.
+
+## Screenshots
+
+| Catalog | Game details |
+| --- | --- |
+| ![Catalog](docs/screenshots/catalog.png) | ![Game details](docs/screenshots/game-details.png) |
+
+| Catalog management | Dark theme |
+| --- | --- |
+| ![Catalog management](docs/screenshots/admin-catalog.png) | ![Dark theme](docs/screenshots/catalog-dark.png) |
 
 ## Features
 
@@ -18,7 +32,7 @@ Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite
 - set a personal icon for any game, visible only to that user;
 - edit the profile: nickname, email, phone number with a `+7 (XXX) XXX-XX-XX` mask, avatar;
 - change the account password;
-- switch the interface language between English and Russian; the choice is remembered.
+- switch the interface language between English and Russian and toggle the dark theme; both choices are remembered.
 
 ### Administrator
 
@@ -60,7 +74,9 @@ src/
   components/             game card, modals, notifications, layout
   contexts/AuthContext    authentication state
   i18n/                   translations and language context
+  theme/                  light and dark theme context
   shared/                 shared types and error handling
+tests/                    end-to-end tests driving the real app
 ```
 
 ## Getting started
@@ -78,6 +94,18 @@ Build and run the production version:
 npm run build
 npm start
 ```
+
+## Development
+
+```bash
+npm run typecheck   # TypeScript checks for the renderer and the main process
+npm test            # end-to-end tests (Windows only, see tests/README.md)
+npm run dist        # Windows installer, written to release/
+```
+
+The end-to-end tests launch the real Electron app through Playwright and click through the UI:
+authentication, the catalog, genres, ratings, reviews, favorites, the profile and both languages.
+Every run uses a throwaway user-data directory, so your own database is never touched.
 
 ### Default login
 

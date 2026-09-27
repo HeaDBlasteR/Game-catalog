@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { I18nProvider } from './i18n/I18nContext';
+import { ThemeProvider } from './theme/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CatalogPage from './pages/CatalogPage';
@@ -35,13 +36,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <I18nProvider>
-      <AuthProvider>
-        <HashRouter>
-          <AppRoutes />
-        </HashRouter>
-      </AuthProvider>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <HashRouter>
+            <AppRoutes />
+          </HashRouter>
+        </AuthProvider>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
 

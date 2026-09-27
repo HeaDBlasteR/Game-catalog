@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useI18n } from '../i18n/I18nContext';
 import LanguageSwitcher from './LanguageSwitcher';
+import ThemeSwitcher from './ThemeSwitcher';
 
 type DashboardLayoutProps = {
   title: string;
@@ -67,7 +68,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ title, subtitle, chil
         </nav>
 
         <div className="sidebar-footer">
-          <LanguageSwitcher className="sidebar-language-switcher" />
+          <div className="sidebar-preferences">
+            <LanguageSwitcher className="sidebar-language-switcher" />
+            <ThemeSwitcher />
+          </div>
           <button className="btn btn-light sidebar-logout-btn" type="button" onClick={handleLogout}>{t('nav.logout')}</button>
         </div>
       </aside>

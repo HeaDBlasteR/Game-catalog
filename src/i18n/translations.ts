@@ -230,6 +230,8 @@ const ru = {
   'time.lessThanMinute': 'меньше минуты',
   'time.minutes': '{minutes} мин',
   'time.hoursMinutes': '{hours} ч {minutes} мин',
+  'theme.toDark': 'Включить темную тему',
+  'theme.toLight': 'Включить светлую тему',
 } satisfies Record<`errors.${AppErrorCode}`, string> & Record<string, string>;
 
 export type TranslationKey = keyof typeof ru;
@@ -457,6 +459,8 @@ const en: Record<TranslationKey, string> = {
   'time.lessThanMinute': 'less than a minute',
   'time.minutes': '{minutes} min',
   'time.hoursMinutes': '{hours}h {minutes}m',
+  'theme.toDark': 'Switch to dark theme',
+  'theme.toLight': 'Switch to light theme',
 };
 
 export const translations: Record<Language, Record<TranslationKey, string>> = { ru, en };
