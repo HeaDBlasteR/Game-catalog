@@ -25,6 +25,15 @@ export function registerRatingsHandlers() {
     }
   });
 
+  ipcMain.handle('ratings:getDistribution', async (event, gameId: number) => {
+    try {
+      await requireUser(event);
+      return await ratingDb.getDistribution(assertId(gameId));
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
   ipcMain.handle('ratings:getUserRating', async (event, gameId: number) => {
     try {
       const user = await requireUser(event);

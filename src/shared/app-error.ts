@@ -21,7 +21,11 @@ export type AppErrorCode =
   | 'genreRequired'
   | 'genreNameRequired'
   | 'genreNameTaken'
-  | 'genreNotFound';
+  | 'genreNotFound'
+  | 'currentPasswordWrong'
+  | 'passwordTooShort'
+  | 'passwordsDoNotMatch'
+  | 'executableNotFound';
 
 const PREFIX = 'APP_ERROR:';
 

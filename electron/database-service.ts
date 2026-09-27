@@ -234,6 +234,23 @@ export const ratingDb = {
       relations: ['user', 'game']
     });
   },
+  getDistribution: async (gameId: number): Promise<Record<1|2|3|4|5, number>> => {
+    const repo = AppDataSource.getRepository(UserRating);
+    const rows = await repo
+      .createQueryBuilder('rating')
+      .select('rating.rating', 'rating')
+      .addSelect('COUNT(*)', 'count')
+      .where('rating.gameId = :gameId', { gameId })
+      .groupBy('rating.rating')
+      .getRawMany();
+
+    const distribution: Record<1|2|3|4|5, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const row of rows) {
+      const value = Number(row.rating) as 1|2|3|4|5;
+      if (value >= 1 && value <= 5) distribution[value] = Number(row.count) || 0;
+    }
+    return distribution;
+  },
   addOrUpdateRating: async (userId: number, gameId: number, rating: 1|2|3|4|5): Promise<void> => {
     const ratingRepo = AppDataSource.getRepository(UserRating);
     const gameRepo = AppDataSource.getRepository(Game);

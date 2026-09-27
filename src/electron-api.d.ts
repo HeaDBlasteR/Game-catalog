@@ -21,6 +21,7 @@ type ElectronAPI = {
   login: (username: string, password: string) => Promise<AppUser>;
   register: (username: string, password: string) => Promise<AppUser>;
   logout: () => Promise<{ success: true }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: true }>;
   setLanguage: (language: 'ru' | 'en') => Promise<void>;
   getProfile: () => Promise<AppUser>;
   uploadProfileIconFromPC: () => Promise<string | null>;
@@ -30,11 +31,13 @@ type ElectronAPI = {
   getGame: (id: number) => Promise<Game | null>;
   uploadGameIconFromPC: (scope: 'admin' | 'user') => Promise<string | null>;
   setUserGameIcon: (gameId: number, iconPath: string | null) => Promise<{ success: true }>;
+  pickExecutable: () => Promise<{ filePath: string; iconPath: string | null } | null>;
   getGenres: () => Promise<Genre[]>;
   launchGame: (gameId: number) => Promise<number>;
 
   rateGame: (gameId: number, rating: 1 | 2 | 3 | 4 | 5) => Promise<{ success: true }>;
   getUserRating: (gameId: number) => Promise<1 | 2 | 3 | 4 | 5 | null>;
+  getRatingDistribution: (gameId: number) => Promise<Record<1 | 2 | 3 | 4 | 5, number>>;
 
   addGame: (gameData: GameInput) => Promise<Game>;
   updateGame: (id: number, updates: GameUpdateInput) => Promise<{ success: true }>;

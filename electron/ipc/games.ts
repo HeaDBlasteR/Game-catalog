@@ -1,4 +1,4 @@
-import { dialog, ipcMain, shell } from 'electron';
+import { app, dialog, ipcMain, shell } from 'electron';
 import { gameDb } from '../database-service';
 import { spawn } from 'child_process';
 import fs from 'fs';
@@ -25,7 +25,43 @@ async function runGame(filePath: string): Promise<void> {
   });
 }
 
+async function extractExecutableIcon(filePath: string): Promise<string | null> {
+  try {
+    const icon = await app.getFileIcon(filePath, { size: 'large' });
+    if (icon.isEmpty()) return null;
+    return `data:image/png;base64,${icon.toPNG().toString('base64')}`;
+  } catch {
+    return null;
+  }
+}
+
 export function registerGamesHandlers() {
+  ipcMain.handle('games:pickExecutable', async event => {
+    try {
+      await requireAdmin(event);
+
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: mt('executableDialogTitle'),
+        properties: ['openFile'],
+        filters: [
+          { name: mt('executableFilterName'), extensions: ['exe', 'lnk', 'bat', 'cmd'] },
+          { name: mt('allFilesFilterName'), extensions: ['*'] }
+        ]
+      });
+
+      if (canceled || !filePaths.length) {
+        return null;
+      }
+
+      const filePath = filePaths[0];
+      if (!fs.existsSync(filePath)) throw appError('executableNotFound');
+
+      return { filePath, iconPath: await extractExecutableIcon(filePath) };
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
   ipcMain.handle('games:getAll', async event => {
     try {
       const user = await requireUser(event);

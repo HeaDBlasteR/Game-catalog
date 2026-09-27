@@ -12,6 +12,7 @@ interface GameCardProps {
   canChangeIcon: boolean;
   onIconChange: (gameId: number, iconPath: string | null) => Promise<void>;
   onIconError?: (error: unknown) => void;
+  onOpenDetails: (game: Game) => void;
   canManage?: boolean;
   onEdit?: (game: Game) => void;
   onDelete?: (gameId: number) => void;
@@ -26,6 +27,7 @@ const GameCard: React.FC<GameCardProps> = ({
   canChangeIcon,
   onIconChange,
   onIconError,
+  onOpenDetails,
   canManage = false,
   onEdit,
   onDelete
@@ -90,7 +92,9 @@ const GameCard: React.FC<GameCardProps> = ({
         <div className="game-icon-wrap game-icon-placeholder" aria-hidden="true">{t('gameCard.noIcon')}</div>
       )}
 
-      <h3>{game.title}</h3>
+      <h3>
+        <button type="button" className="game-title-button" onClick={() => onOpenDetails(game)}>{game.title}</button>
+      </h3>
       <p><strong>{t('gameCard.genres')}</strong> {game.genres.map(genre => genre.name).join(', ') || '-'}</p>
       <p><strong>{t('gameCard.developer')}</strong> {game.developer}</p>
       <p><strong>{t('gameCard.rating')}</strong> {stars(game.averageRating)} ({game.averageRating.toFixed(1)})</p>
@@ -105,6 +109,10 @@ const GameCard: React.FC<GameCardProps> = ({
           </div>
         </div>
       )}
+
+      <button className="btn btn-light game-details-button" type="button" onClick={() => onOpenDetails(game)}>
+        {t('details.open')}
+      </button>
 
       <div className="game-card-actions">
         {canLaunch && (

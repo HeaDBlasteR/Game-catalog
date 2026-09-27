@@ -109,6 +109,26 @@ export function registerAuthHandlers() {
     }
   });
 
+  ipcMain.handle('auth:changePassword', async (event, currentPassword: string, newPassword: string) => {
+    try {
+      const user = await requireUser(event);
+      if (!(await user.checkPassword(assertString(currentPassword)))) {
+        throw appError('currentPasswordWrong');
+      }
+
+      const password = assertString(newPassword);
+      if (!password) throw appError('passwordRequired');
+      if (password.length < 4) throw appError('passwordTooShort');
+      if (Buffer.byteLength(password) > 72) throw appError('passwordTooLong');
+
+      await user.setPassword(password);
+      await AppDataSource.getRepository(User).save(user);
+      return { success: true };
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
   ipcMain.handle('auth:logout', async event => {
     clearSession(event.sender.id);
     return { success: true };

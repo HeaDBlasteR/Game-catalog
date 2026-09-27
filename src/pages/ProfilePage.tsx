@@ -5,6 +5,18 @@ import { useAuth } from '../contexts/AuthContext';
 import { NoticeState } from '../shared/feedback';
 import { useI18n } from '../i18n/I18nContext';
 
+type PasswordFormState = {
+  currentPassword: string;
+  newPassword: string;
+  repeatPassword: string;
+};
+
+const EMPTY_PASSWORD_FORM: PasswordFormState = {
+  currentPassword: '',
+  newPassword: '',
+  repeatPassword: ''
+};
+
 type ProfileFormState = {
   displayName: string;
   email: string;
@@ -60,6 +72,8 @@ const ProfilePage: React.FC = () => {
     iconPath: null
   });
   const [saving, setSaving] = useState(false);
+  const [passwordForm, setPasswordForm] = useState<PasswordFormState>(EMPTY_PASSWORD_FORM);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [notice, setNotice] = useState<NoticeState | null>(null);
 
   useEffect(() => {
@@ -122,6 +136,36 @@ const ProfilePage: React.FC = () => {
         type: 'error',
         text: errorText(err, 'profile.iconUploadFailed')
       });
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (passwordForm.newPassword !== passwordForm.repeatPassword) {
+      setNotice({ type: 'error', text: t('errors.passwordsDoNotMatch') });
+      return;
+    }
+
+    setChangingPassword(true);
+    setNotice(null);
+
+    try {
+      await window.electronAPI.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      setPasswordForm(EMPTY_PASSWORD_FORM);
+      setNotice({ type: 'success', text: t('password.changed') });
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: errorText(err, 'password.changeFailed')
+      });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -244,6 +288,56 @@ const ProfilePage: React.FC = () => {
             <div className="profile-form-actions">
               <button className="btn" type="submit" disabled={saving}>
                 {saving ? t('profile.saving') : t('profile.save')}
+              </button>
+            </div>
+          </form>
+        </article>
+
+        <article className="panel-card profile-password-card">
+          <h3>{t('password.title')}</h3>
+          <form onSubmit={handlePasswordSubmit} className="profile-form">
+            <label className="field-wrap" htmlFor="currentPassword">
+              <span>{t('password.current')}</span>
+              <input
+                className="input"
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                value={passwordForm.currentPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </label>
+
+            <label className="field-wrap" htmlFor="newPassword">
+              <span>{t('password.new')}</span>
+              <input
+                className="input"
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                value={passwordForm.newPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </label>
+
+            <label className="field-wrap" htmlFor="repeatPassword">
+              <span>{t('password.repeat')}</span>
+              <input
+                className="input"
+                id="repeatPassword"
+                name="repeatPassword"
+                type="password"
+                value={passwordForm.repeatPassword}
+                onChange={handlePasswordChange}
+                required
+              />
+            </label>
+
+            <div className="profile-form-actions">
+              <button className="btn" type="submit" disabled={changingPassword}>
+                {changingPassword ? t('password.saving') : t('password.submit')}
               </button>
             </div>
           </form>

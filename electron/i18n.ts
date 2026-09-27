@@ -6,6 +6,9 @@ const messages = {
   ru: {
     profileIconDialogTitle: 'Выберите иконку профиля',
     gameIconDialogTitle: 'Выберите иконку игры',
+    executableDialogTitle: 'Выберите исполняемый файл игры',
+    executableFilterName: 'Исполняемые файлы',
+    allFilesFilterName: 'Все файлы',
     iconFilterName: 'Иконки',
     startupErrorTitle: 'Ошибка запуска',
     startupErrorMessage: 'Не удалось подключиться к базе данных:'
@@ -13,6 +16,9 @@ const messages = {
   en: {
     profileIconDialogTitle: 'Choose a profile icon',
     gameIconDialogTitle: 'Choose a game icon',
+    executableDialogTitle: 'Choose the game executable',
+    executableFilterName: 'Executables',
+    allFilesFilterName: 'All files',
     iconFilterName: 'Icons',
     startupErrorTitle: 'Startup error',
     startupErrorMessage: 'Failed to connect to the database:'

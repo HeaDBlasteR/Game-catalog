@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
 import ConfirmModal from '../components/ConfirmModal';
+import GameDetailsModal from '../components/GameDetailsModal';
 import { Game, Genre, GameInput } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import NoticeBanner from '../components/NoticeBanner';
@@ -32,6 +33,7 @@ const CatalogPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingGame, setEditingGame] = useState<Game | null>(null);
   const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
+  const [detailsGame, setDetailsGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState<GameInput>(emptyGameForm);
   const isAdmin = user?.role === 'admin';
   const pageTitle = isAdmin ? t('catalog.titleAdmin') : t('catalog.title');
@@ -96,6 +98,30 @@ const CatalogPage: React.FC = () => {
       setNotice({
         type: 'error',
         text: errorText(err, 'catalog.iconUploadFailed')
+      });
+    }
+  };
+
+  const handlePickExecutable = async () => {
+    if (!isAdmin) return;
+    try {
+      const picked = await window.electronAPI.pickExecutable();
+      if (!picked) return;
+
+      const useExtractedIcon = Boolean(picked.iconPath) && !formData.iconPath;
+      setFormData(prev => ({
+        ...prev,
+        filePath: picked.filePath,
+        iconPath: useExtractedIcon ? picked.iconPath : prev.iconPath
+      }));
+      setNotice({
+        type: 'success',
+        text: useExtractedIcon ? t('catalog.executableIconPicked') : t('catalog.executablePicked')
+      });
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: errorText(err, 'catalog.pickExecutableFailed')
       });
     }
   };
@@ -370,10 +396,13 @@ const CatalogPage: React.FC = () => {
                   <input className="input" id="releaseDate" type="date" name="releaseDate" value={formData.releaseDate} onChange={handleInputChange} required />
                 </label>
 
-                <label className="field-wrap" htmlFor="filePath">
-                  <span>{t('catalog.fieldFilePath')}</span>
-                  <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
-                </label>
+                <div className="field-wrap">
+                  <label htmlFor="filePath">{t('catalog.fieldFilePath')}</label>
+                  <div className="file-path-row">
+                    <input className="input" id="filePath" name="filePath" value={formData.filePath} onChange={handleInputChange} required />
+                    <button className="btn btn-light" type="button" onClick={handlePickExecutable}>{t('catalog.pickExecutable')}</button>
+                  </div>
+                </div>
 
                 <div className="field-wrap">
                   <span>{t('catalog.fieldIcon')}</span>
@@ -440,6 +469,7 @@ const CatalogPage: React.FC = () => {
               onRateClick={handleRateClick}
               canRate={user?.role !== 'admin'}
               canChangeIcon={user?.role !== 'admin'}
+              onOpenDetails={setDetailsGame}
               onIconChange={handleSetGameIcon}
               onIconError={err => setNotice({
                 type: 'error',
@@ -451,6 +481,13 @@ const CatalogPage: React.FC = () => {
             />
           ))}
         </div>
+      )}
+
+      {detailsGame && (
+        <GameDetailsModal
+          game={games.find(item => item.id === detailsGame.id) ?? detailsGame}
+          onClose={() => setDetailsGame(null)}
+        />
       )}
 
       {showRatingModal && ratingGame && user?.role !== 'admin' && (

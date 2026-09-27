@@ -11,14 +11,17 @@ Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite
 - sign up and log in (passwords are hashed with bcrypt);
 - browse the catalog with search by title and filter by genre;
 - launch a game with one click; after the game exits, the app offers to rate it;
+- open a details window with the description, release date, genres and a breakdown of ratings;
 - rate games from 1 to 5 stars, with the average rating recalculated automatically;
 - set a personal icon for any game, visible only to that user;
-- edit the profile: nickname, email, phone number with a `+7 (XXX) XXX-XX-XX` mask, avatar.
+- edit the profile: nickname, email, phone number with a `+7 (XXX) XXX-XX-XX` mask, avatar;
+- change the account password;
 - switch the interface language between English and Russian; the choice is remembered.
 
 ### Administrator
 
 - add, edit and delete games (title, developer, release date, path to the executable, description, icon, multiple genres);
+- pick the game executable in a file dialog; its icon is extracted from the file automatically;
 - manage genres; a starter set of 21 genres is created on first launch;
 - view catalog statistics: number of games and genres, average rating, total number of ratings.
 

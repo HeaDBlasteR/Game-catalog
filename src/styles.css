@@ -740,6 +740,146 @@ textarea.input {
   font-size: 22px;
 }
 
+.game-details-content {
+  width: min(560px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+}
+
+.game-details-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.game-details-header h2 {
+  margin: 0;
+}
+
+.game-details-icon {
+  width: 84px;
+  height: 84px;
+  flex: 0 0 84px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  object-fit: cover;
+  background: var(--bg-root);
+}
+
+.game-details-icon.game-icon-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  text-align: center;
+}
+
+.game-details-section {
+  margin-top: 16px;
+}
+
+.game-details-section h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.game-details-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.genre-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg-root);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.game-details-description {
+  margin: 0;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+.game-details-rating-line {
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.rating-bars {
+  display: grid;
+  gap: 4px;
+}
+
+.rating-bar-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rating-bar-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-root);
+  overflow: hidden;
+}
+
+.rating-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.rating-bar-count {
+  text-align: right;
+}
+
+.game-title-button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.game-title-button:hover {
+  color: var(--accent);
+}
+
+.game-details-button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.file-path-row {
+  display: flex;
+  gap: 8px;
+}
+
+.file-path-row .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-password-card {
+  grid-column: 2;
+}
+
+.profile-password-card h3 {
+  margin: 0 0 10px;
+}
+
 .modal-subtitle {
   color: var(--text-secondary);
   margin-top: 6px;
@@ -1031,6 +1171,10 @@ textarea.input {
 
   .stats-grid,
   .form-grid,
+  .profile-password-card {
+    grid-column: auto;
+  }
+
   .profile-layout {
     grid-template-columns: 1fr;
   }
