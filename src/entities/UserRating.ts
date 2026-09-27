@@ -19,6 +19,9 @@ export class UserRating {
   @Column({ type: 'int' })
   rating!: 1 | 2 | 3 | 4 | 5;
 
+  @Column({ type: 'text', nullable: true })
+  comment!: string | null;
+
   @CreateDateColumn({ name: 'createdAt' })
   createdAt!: Date;
 }

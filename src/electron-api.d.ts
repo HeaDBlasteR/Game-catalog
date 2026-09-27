@@ -1,4 +1,4 @@
-import type { Game, Genre, GameInput, GameUpdateInput } from './shared/types';
+import type { Game, GameReview, Genre, GameInput, GameUpdateInput, UserReview } from './shared/types';
 
 type AppUser = {
   id: number;
@@ -34,10 +34,13 @@ type ElectronAPI = {
   pickExecutable: () => Promise<{ filePath: string; iconPath: string | null } | null>;
   getGenres: () => Promise<Genre[]>;
   launchGame: (gameId: number) => Promise<number>;
+  toggleFavorite: (gameId: number) => Promise<{ favorite: boolean }>;
 
-  rateGame: (gameId: number, rating: 1 | 2 | 3 | 4 | 5) => Promise<{ success: true }>;
+  rateGame: (gameId: number, rating: 1 | 2 | 3 | 4 | 5, comment: string | null) => Promise<{ success: true }>;
   getUserRating: (gameId: number) => Promise<1 | 2 | 3 | 4 | 5 | null>;
   getRatingDistribution: (gameId: number) => Promise<Record<1 | 2 | 3 | 4 | 5, number>>;
+  getGameReviews: (gameId: number) => Promise<GameReview[]>;
+  getUserReview: (gameId: number) => Promise<UserReview | null>;
 
   addGame: (gameData: GameInput) => Promise<Game>;
   updateGame: (id: number, updates: GameUpdateInput) => Promise<{ success: true }>;

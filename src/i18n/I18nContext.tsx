@@ -13,6 +13,9 @@ interface I18nContextType {
   t: (key: TranslationKey, params?: TranslateParams) => string;
   errorText: (error: unknown, fallback: TranslationKey) => string;
   genreDescription: (name: string, description: string) => string;
+  formatDate: (value: string | null) => string;
+  formatDateTime: (value: string | null) => string;
+  formatDuration: (seconds: number) => string;
 }
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
@@ -57,9 +60,44 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return defaultGenre && defaultGenre.description.ru === description ? defaultGenre.description.en : description;
   }, [language]);
 
+  const formatDate = useCallback((value: string | null) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+  }, [language]);
+
+  const formatDateTime = useCallback((value: string | null) => {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString(language === 'ru' ? 'ru-RU' : 'en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }, [language]);
+
+  const formatDuration = useCallback((seconds: number) => {
+    const totalMinutes = Math.floor(Math.max(0, seconds) / 60);
+    if (totalMinutes < 1) return t('time.lessThanMinute');
+
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours
+      ? t('time.hoursMinutes', { hours, minutes })
+      : t('time.minutes', { minutes });
+  }, [t]);
+
   const value = useMemo(
-    () => ({ language, setLanguage: setLanguageState, t, errorText, genreDescription }),
-    [language, t, errorText, genreDescription]
+    () => ({ language, setLanguage: setLanguageState, t, errorText, genreDescription, formatDate, formatDateTime, formatDuration }),
+    [language, t, errorText, genreDescription, formatDate, formatDateTime, formatDuration]
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

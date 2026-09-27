@@ -334,12 +334,137 @@ a:hover {
 
 .toolbar-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 190px 190px auto;
   gap: 12px;
 }
 
 .toolbar-grid-admin {
-  grid-template-columns: minmax(0, 1fr) 220px auto;
+  grid-template-columns: minmax(0, 1fr) 190px 190px auto auto;
+}
+
+.favorites-filter-wrap {
+  align-self: end;
+}
+
+.favorites-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.game-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.game-card-title-row h3 {
+  margin: 0;
+}
+
+.favorite-button {
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.15s ease;
+}
+
+.favorite-button:hover {
+  transform: scale(1.15);
+}
+
+.favorite-button.active {
+  color: var(--danger);
+}
+
+.game-details-stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.game-details-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.game-details-stats strong {
+  color: var(--text-primary);
+}
+
+.rating-comment-field {
+  margin-top: 12px;
+  text-align: left;
+}
+
+.rating-comment-field textarea {
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.review-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--bg-root);
+}
+
+.review-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-author {
+  font-weight: 700;
+}
+
+.review-stars {
+  color: #f0a500;
+}
+
+.review-date {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.review-text {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+}
+
+.review-text-empty {
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 .toolbar-action-wrap {
@@ -773,6 +898,10 @@ textarea.input {
   text-align: center;
 }
 
+.game-details-content .modal-actions {
+  margin-top: 18px;
+}
+
 .game-details-section {
   margin-top: 16px;
 }
@@ -1100,6 +1229,10 @@ textarea.input {
 
   .nav-link.active::before {
     color: var(--accent);
+  }
+
+  .favorites-filter-wrap span:first-child {
+    display: none;
   }
 
   .toolbar-grid {

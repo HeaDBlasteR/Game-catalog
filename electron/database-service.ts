@@ -7,6 +7,8 @@ import { Game } from '../src/entities/Game';
 import { UserRating } from '../src/entities/UserRating';
 import { Genre } from '../src/entities/Genre';
 import { UserGameIcon } from '../src/entities/UserGameIcon';
+import { UserGameState } from '../src/entities/UserGameState';
+import type { Game as GameDto, GameReview } from '../src/shared/types';
 import { UserRole } from '../src/shared/types';
 import { appError } from '../src/shared/app-error';
 
@@ -59,16 +61,16 @@ export const userDb = {
 };
 
 export const gameDb = {
-  getAll: async (userId?: number): Promise<Game[]> => {
+  getAll: async (userId?: number): Promise<GameDto[]> => {
     const repo = AppDataSource.getRepository(Game);
     const games = await repo.find({
       order: { title: 'ASC' },
       relations: ['genres']
     });
 
-    return applyUserIconOverrides(games, userId);
+    return applyUserData(games, userId);
   },
-  getById: async (id: number, userId?: number): Promise<Game | null> => {
+  getById: async (id: number, userId?: number): Promise<GameDto | null> => {
     const repo = AppDataSource.getRepository(Game);
     const game = await repo.findOne({
       where: { id },
@@ -76,8 +78,31 @@ export const gameDb = {
     });
 
     if (!game) return null;
-    const [withIcon] = await applyUserIconOverrides([game], userId);
-    return withIcon;
+    const [withUserData] = await applyUserData([game], userId);
+    return withUserData;
+  },
+  toggleFavorite: async (userId: number, gameId: number): Promise<boolean> => {
+    const repo = AppDataSource.getRepository(UserGameState);
+    const state = await repo.findOneBy({ userId, gameId });
+
+    if (state) {
+      state.favorite = !state.favorite;
+      await repo.save(state);
+      return state.favorite;
+    }
+
+    await repo.save(repo.create({ userId, gameId, favorite: true }));
+    return true;
+  },
+  registerPlaySession: async (userId: number, gameId: number, playedSeconds: number): Promise<void> => {
+    const repo = AppDataSource.getRepository(UserGameState);
+    const state = await repo.findOneBy({ userId, gameId })
+      ?? repo.create({ userId, gameId, favorite: false, playtimeSeconds: 0, launchCount: 0 });
+
+    state.playtimeSeconds += Math.max(0, Math.round(playedSeconds));
+    state.launchCount += 1;
+    state.lastPlayedAt = new Date();
+    await repo.save(state);
   },
   create: async (gameData: CreateGameInput): Promise<Game> => {
     const gameRepo = AppDataSource.getRepository(Game);
@@ -251,7 +276,23 @@ export const ratingDb = {
     }
     return distribution;
   },
-  addOrUpdateRating: async (userId: number, gameId: number, rating: 1|2|3|4|5): Promise<void> => {
+  getReviews: async (gameId: number): Promise<GameReview[]> => {
+    const repo = AppDataSource.getRepository(UserRating);
+    const ratings = await repo.find({
+      where: { game: { id: gameId } },
+      relations: ['user'],
+      order: { createdAt: 'DESC' }
+    });
+
+    return ratings.map(item => ({
+      id: item.id,
+      author: item.user.displayName?.trim() || item.user.username,
+      rating: item.rating,
+      comment: item.comment,
+      createdAt: toIsoString(item.createdAt)
+    }));
+  },
+  addOrUpdateRating: async (userId: number, gameId: number, rating: 1|2|3|4|5, comment: string | null = null): Promise<void> => {
     const ratingRepo = AppDataSource.getRepository(UserRating);
     const gameRepo = AppDataSource.getRepository(Game);
 
@@ -261,11 +302,13 @@ export const ratingDb = {
 
     if (userRating) {
       userRating.rating = rating;
+      userRating.comment = comment;
     } else {
       userRating = ratingRepo.create({
         user: { id: userId },
         game: { id: gameId },
-        rating
+        rating,
+        comment
       });
     }
     await ratingRepo.save(userRating);
@@ -305,26 +348,59 @@ function sanitizeIconPath(iconPath?: string | null): string | null {
   return trimmed || null;
 }
 
-async function applyUserIconOverrides(games: Game[], userId?: number): Promise<Game[]> {
-  if (!userId || !games.length) {
-    return games;
+function toIsoString(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function toGameDto(game: Game): GameDto {
+  return {
+    id: game.id,
+    title: game.title,
+    description: game.description,
+    genres: game.genres ?? [],
+    releaseDate: game.releaseDate,
+    developer: game.developer,
+    averageRating: game.averageRating,
+    totalRatings: game.totalRatings,
+    filePath: game.filePath,
+    iconPath: game.iconPath,
+    createdAt: toIsoString(game.createdAt),
+    favorite: false,
+    playtimeSeconds: 0,
+    launchCount: 0,
+    lastPlayedAt: null
+  };
+}
+
+async function applyUserData(games: Game[], userId?: number): Promise<GameDto[]> {
+  const result = games.map(toGameDto);
+  if (!userId || !result.length) {
+    return result;
   }
 
-  const iconRepo = AppDataSource.getRepository(UserGameIcon);
-  const overrides = await iconRepo.find({
-    where: { userId, gameId: In(games.map(game => game.id)) }
-  });
+  const gameIds = result.map(game => game.id);
+  const [overrides, states] = await Promise.all([
+    AppDataSource.getRepository(UserGameIcon).find({ where: { userId, gameId: In(gameIds) } }),
+    AppDataSource.getRepository(UserGameState).find({ where: { userId, gameId: In(gameIds) } })
+  ]);
 
-  const overrideMap = new Map<number, string>();
-  for (const override of overrides) {
-    overrideMap.set(override.gameId, override.iconPath);
-  }
+  const overrideMap = new Map(overrides.map(override => [override.gameId, override.iconPath]));
+  const stateMap = new Map(states.map(state => [state.gameId, state]));
 
-  return games.map(game => {
+  return result.map(game => {
     const overridePath = overrideMap.get(game.id);
-    if (!overridePath) return game;
-    game.iconPath = overridePath;
-    return game;
+    const state = stateMap.get(game.id);
+
+    return {
+      ...game,
+      iconPath: overridePath ?? game.iconPath,
+      favorite: state?.favorite ?? false,
+      playtimeSeconds: state?.playtimeSeconds ?? 0,
+      launchCount: state?.launchCount ?? 0,
+      lastPlayedAt: toIsoString(state?.lastPlayedAt ?? null)
+    };
   });
 }
 

@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, CreateDateColumn } from 'typeorm';
 import { UserRating } from './UserRating';
 import { Genre } from './Genre';
 import { UserGameIcon } from './UserGameIcon';
@@ -40,6 +40,9 @@ export class Game {
 
   @Column({ type: 'text', nullable: true })
   iconPath!: string | null;
+
+  @CreateDateColumn({ name: 'createdAt' })
+  createdAt!: Date;
 
   @OneToMany(() => UserRating, rating => rating.game)
   ratings!: UserRating[];

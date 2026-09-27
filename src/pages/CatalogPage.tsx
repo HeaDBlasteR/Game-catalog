@@ -4,7 +4,7 @@ import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
 import ConfirmModal from '../components/ConfirmModal';
 import GameDetailsModal from '../components/GameDetailsModal';
-import { Game, Genre, GameInput } from '../shared/types';
+import { Game, Genre, GameInput, GameSort } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import NoticeBanner from '../components/NoticeBanner';
 import { NoticeState } from '../shared/feedback';
@@ -27,6 +27,8 @@ const CatalogPage: React.FC = () => {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [search, setSearch] = useState('');
   const [genreFilter, setGenreFilter] = useState<string>('');
+  const [sort, setSort] = useState<GameSort>('title');
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingGame, setRatingGame] = useState<Game | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
@@ -83,6 +85,22 @@ const CatalogPage: React.FC = () => {
       setNotice({
         type: 'error',
         text: errorText(err, 'catalog.iconSaveFailed')
+      });
+    }
+  };
+
+  const handleToggleFavorite = async (game: Game) => {
+    try {
+      const { favorite } = await window.electronAPI.toggleFavorite(game.id);
+      await fetchGames();
+      setNotice({
+        type: 'success',
+        text: favorite ? t('catalog.favoriteAdded') : t('catalog.favoriteRemoved')
+      });
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: errorText(err, 'catalog.favoriteFailed')
       });
     }
   };
@@ -269,10 +287,10 @@ const CatalogPage: React.FC = () => {
     }
   };
 
-  const handleSaveRating = async (rating: 1 | 2 | 3 | 4 | 5) => {
+  const handleSaveRating = async (rating: 1 | 2 | 3 | 4 | 5, comment: string) => {
     if (!user || !ratingGame) return;
     try {
-      await window.electronAPI.rateGame(ratingGame.id, rating);
+      await window.electronAPI.rateGame(ratingGame.id, rating, comment.trim() || null);
       await fetchGames();
       setShowRatingModal(false);
       setRatingGame(null);
@@ -285,11 +303,29 @@ const CatalogPage: React.FC = () => {
     }
   };
 
-  const filteredGames = games.filter(game => {
-    const matchesSearch = game.title.toLowerCase().includes(search.toLowerCase());
-    const matchesGenre = genreFilter === '' || game.genres.some(genre => genre.name === genreFilter);
-    return matchesSearch && matchesGenre;
-  });
+  const sortGames = (a: Game, b: Game) => {
+    switch (sort) {
+      case 'rating':
+        return b.averageRating - a.averageRating || b.totalRatings - a.totalRatings;
+      case 'playtime':
+        return b.playtimeSeconds - a.playtimeSeconds;
+      case 'lastPlayed':
+        return new Date(b.lastPlayedAt ?? 0).getTime() - new Date(a.lastPlayedAt ?? 0).getTime();
+      case 'newest':
+        return (new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()) || (b.id - a.id);
+      default:
+        return a.title.localeCompare(b.title);
+    }
+  };
+
+  const filteredGames = games
+    .filter(game => {
+      const matchesSearch = game.title.toLowerCase().includes(search.toLowerCase());
+      const matchesGenre = genreFilter === '' || game.genres.some(genre => genre.name === genreFilter);
+      const matchesFavorites = !onlyFavorites || game.favorite;
+      return matchesSearch && matchesGenre && matchesFavorites;
+    })
+    .sort(sortGames);
 
   const totalRatings = games.reduce((acc, game) => acc + game.totalRatings, 0);
   const avgAcrossGames = games.length
@@ -357,6 +393,35 @@ const CatalogPage: React.FC = () => {
               {genres.map(genre => <option key={genre.id} value={genre.name}>{genre.name}</option>)}
             </select>
           </label>
+
+          <label className="field-wrap" htmlFor="sortGames">
+            <span>{t('catalog.sort')}</span>
+            <select
+              id="sortGames"
+              className="input"
+              value={sort}
+              onChange={e => setSort(e.target.value as GameSort)}
+            >
+              <option value="title">{t('catalog.sortTitle')}</option>
+              <option value="rating">{t('catalog.sortRating')}</option>
+              <option value="playtime">{t('catalog.sortPlaytime')}</option>
+              <option value="lastPlayed">{t('catalog.sortLastPlayed')}</option>
+              <option value="newest">{t('catalog.sortNewest')}</option>
+            </select>
+          </label>
+
+          <div className="field-wrap favorites-filter-wrap">
+            <span>&nbsp;</span>
+            <label className="favorites-filter" htmlFor="onlyFavorites">
+              <input
+                id="onlyFavorites"
+                type="checkbox"
+                checked={onlyFavorites}
+                onChange={e => setOnlyFavorites(e.target.checked)}
+              />
+              <span>{t('catalog.onlyFavorites')}</span>
+            </label>
+          </div>
 
           {isAdmin && (
             <div className="field-wrap toolbar-action-wrap">
@@ -470,6 +535,7 @@ const CatalogPage: React.FC = () => {
               canRate={user?.role !== 'admin'}
               canChangeIcon={user?.role !== 'admin'}
               onOpenDetails={setDetailsGame}
+              onToggleFavorite={handleToggleFavorite}
               onIconChange={handleSetGameIcon}
               onIconError={err => setNotice({
                 type: 'error',
@@ -492,6 +558,7 @@ const CatalogPage: React.FC = () => {
 
       {showRatingModal && ratingGame && user?.role !== 'admin' && (
         <RatingModal
+          gameId={ratingGame.id}
           gameTitle={ratingGame.title}
           onSave={handleSaveRating}
           onClose={() => setShowRatingModal(false)}

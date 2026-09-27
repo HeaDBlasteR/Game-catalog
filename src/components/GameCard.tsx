@@ -13,6 +13,7 @@ interface GameCardProps {
   onIconChange: (gameId: number, iconPath: string | null) => Promise<void>;
   onIconError?: (error: unknown) => void;
   onOpenDetails: (game: Game) => void;
+  onToggleFavorite: (game: Game) => void;
   canManage?: boolean;
   onEdit?: (game: Game) => void;
   onDelete?: (gameId: number) => void;
@@ -28,12 +29,13 @@ const GameCard: React.FC<GameCardProps> = ({
   onIconChange,
   onIconError,
   onOpenDetails,
+  onToggleFavorite,
   canManage = false,
   onEdit,
   onDelete
 }) => {
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, formatDuration, formatDateTime } = useI18n();
   const [userRating, setUserRating] = useState<number | null>(null);
   const [savingIcon, setSavingIcon] = useState(false);
 
@@ -92,13 +94,31 @@ const GameCard: React.FC<GameCardProps> = ({
         <div className="game-icon-wrap game-icon-placeholder" aria-hidden="true">{t('gameCard.noIcon')}</div>
       )}
 
-      <h3>
-        <button type="button" className="game-title-button" onClick={() => onOpenDetails(game)}>{game.title}</button>
-      </h3>
+      <div className="game-card-title-row">
+        <h3>
+          <button type="button" className="game-title-button" onClick={() => onOpenDetails(game)}>{game.title}</button>
+        </h3>
+        <button
+          type="button"
+          className={game.favorite ? 'favorite-button active' : 'favorite-button'}
+          onClick={() => onToggleFavorite(game)}
+          title={game.favorite ? t('gameCard.removeFromFavorites') : t('gameCard.addToFavorites')}
+          aria-label={game.favorite ? t('gameCard.removeFromFavorites') : t('gameCard.addToFavorites')}
+          aria-pressed={game.favorite}
+        >
+          {game.favorite ? '♥' : '♡'}
+        </button>
+      </div>
       <p><strong>{t('gameCard.genres')}</strong> {game.genres.map(genre => genre.name).join(', ') || '-'}</p>
       <p><strong>{t('gameCard.developer')}</strong> {game.developer}</p>
       <p><strong>{t('gameCard.rating')}</strong> {stars(game.averageRating)} ({game.averageRating.toFixed(1)})</p>
       <p><strong>{t('gameCard.ratingsCount')}</strong> {game.totalRatings}</p>
+      {game.launchCount > 0 && (
+        <>
+          <p><strong>{t('gameCard.playtime')}</strong> {formatDuration(game.playtimeSeconds)}</p>
+          <p><strong>{t('gameCard.lastPlayed')}</strong> {formatDateTime(game.lastPlayedAt)}</p>
+        </>
+      )}
 
       {canChangeIcon && (
         <div className="field-wrap">

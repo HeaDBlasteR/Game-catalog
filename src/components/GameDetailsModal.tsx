@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Game } from '../shared/types';
+import { Game, GameReview } from '../shared/types';
 import { useI18n } from '../i18n/I18nContext';
 
 type GameDetailsModalProps = {
@@ -12,9 +12,10 @@ type Distribution = Record<1 | 2 | 3 | 4 | 5, number>;
 const EMPTY_DISTRIBUTION: Distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
 
 const GameDetailsModal: React.FC<GameDetailsModalProps> = ({ game, onClose }) => {
-  const { t, language, genreDescription } = useI18n();
+  const { t, genreDescription, formatDate, formatDateTime, formatDuration } = useI18n();
   const [distribution, setDistribution] = useState<Distribution>(EMPTY_DISTRIBUTION);
   const [userRating, setUserRating] = useState<number | null>(null);
+  const [reviews, setReviews] = useState<GameReview[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -25,6 +26,14 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({ game, onClose }) =>
       })
       .catch(() => {
         if (!cancelled) setDistribution(EMPTY_DISTRIBUTION);
+      });
+
+    window.electronAPI.getGameReviews(game.id)
+      .then(data => {
+        if (!cancelled) setReviews(data);
+      })
+      .catch(() => {
+        if (!cancelled) setReviews([]);
       });
 
     window.electronAPI.getUserRating(game.id)
@@ -48,16 +57,6 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({ game, onClose }) =>
     window.addEventListener('keydown', handleEscape);
     return () => window.removeEventListener('keydown', handleEscape);
   }, [onClose]);
-
-  const formatDate = (value: string) => {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleDateString(language === 'ru' ? 'ru-RU' : 'en-US', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
 
   const maxCount = Math.max(1, ...([5, 4, 3, 2, 1] as const).map(value => distribution[value]));
 
@@ -85,6 +84,19 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({ game, onClose }) =>
               {t('details.releaseDate')}: {formatDate(game.releaseDate)}
             </p>
           </div>
+        </div>
+
+        <div className="game-details-section">
+          <h3>{t('details.yourStats')}</h3>
+          {game.launchCount ? (
+            <ul className="game-details-stats">
+              <li><span>{t('details.playtime')}</span><strong>{formatDuration(game.playtimeSeconds)}</strong></li>
+              <li><span>{t('details.launchCount')}</span><strong>{game.launchCount}</strong></li>
+              <li><span>{t('details.lastPlayed')}</span><strong>{formatDateTime(game.lastPlayedAt)}</strong></li>
+            </ul>
+          ) : (
+            <p className="game-details-description">{t('details.neverPlayed')}</p>
+          )}
         </div>
 
         <div className="game-details-section">
@@ -130,6 +142,28 @@ const GameDetailsModal: React.FC<GameDetailsModalProps> = ({ game, onClose }) =>
             <p className="game-details-description">{t('details.noRatings')}</p>
           )}
           {userRating && <p className="game-details-rating-line">{t('details.yourRating', { rating: userRating })}</p>}
+        </div>
+
+        <div className="game-details-section">
+          <h3>{t('details.reviews')}</h3>
+          {reviews.length ? (
+            <ul className="review-list">
+              {reviews.map(review => (
+                <li className="review-item" key={review.id}>
+                  <div className="review-head">
+                    <span className="review-author">{review.author}</span>
+                    <span className="review-stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                    <span className="review-date">{formatDateTime(review.createdAt)}</span>
+                  </div>
+                  <p className={review.comment ? 'review-text' : 'review-text review-text-empty'}>
+                    {review.comment || t('details.reviewWithoutText')}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="game-details-description">{t('details.noReviews')}</p>
+          )}
         </div>
 
         <div className="modal-actions">

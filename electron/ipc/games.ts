@@ -116,9 +116,22 @@ export function registerGamesHandlers() {
     }
   });
 
+  ipcMain.handle('games:toggleFavorite', async (event, gameId: number) => {
+    try {
+      const user = await requireUser(event);
+      const game = await gameDb.getById(assertId(gameId));
+      if (!game) throw appError('gameNotFound');
+
+      const favorite = await gameDb.toggleFavorite(user.id, game.id);
+      return { favorite };
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  });
+
   ipcMain.handle('games:launch', async (event, gameId: number) => {
     try {
-      await requireUser(event);
+      const user = await requireUser(event);
       const game = await gameDb.getById(assertId(gameId));
       if (!game) throw appError('gameNotFound');
 
@@ -127,7 +140,10 @@ export function registerGamesHandlers() {
         throw appError('gameFileNotFound');
       }
 
+      const startedAt = Date.now();
       await runGame(filePath);
+      await gameDb.registerPlaySession(user.id, game.id, (Date.now() - startedAt) / 1000);
+
       return game.id;
     } catch (err: any) {
       throw new Error(err.message);

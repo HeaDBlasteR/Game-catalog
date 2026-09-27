@@ -24,7 +24,27 @@ export interface Game {
   totalRatings: number;
   filePath: string;
   iconPath: string | null;
+  createdAt: string | null;
+  favorite: boolean;
+  playtimeSeconds: number;
+  launchCount: number;
+  lastPlayedAt: string | null;
 }
+
+export interface GameReview {
+  id: number;
+  author: string;
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment: string | null;
+  createdAt: string | null;
+}
+
+export interface UserReview {
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment: string | null;
+}
+
+export type GameSort = 'title' | 'rating' | 'playtime' | 'lastPlayed' | 'newest';
 
 export interface GameInput {
   title: string;

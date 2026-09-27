@@ -9,10 +9,12 @@ Built with **Electron + React + TypeScript**. Data is stored locally in **SQLite
 ### User
 
 - sign up and log in (passwords are hashed with bcrypt);
-- browse the catalog with search by title and filter by genre;
+- browse the catalog with search by title, filter by genre and favorites, and sorting by title, rating, playtime, last played or date added;
+- mark games as favorites;
 - launch a game with one click; after the game exits, the app offers to rate it;
-- open a details window with the description, release date, genres and a breakdown of ratings;
-- rate games from 1 to 5 stars, with the average rating recalculated automatically;
+- track playtime, launch count and the last played date per game;
+- open a details window with the description, release date, genres, personal stats, a breakdown of ratings and all reviews;
+- rate games from 1 to 5 stars with an optional written review, with the average rating recalculated automatically;
 - set a personal icon for any game, visible only to that user;
 - edit the profile: nickname, email, phone number with a `+7 (XXX) XXX-XX-XX` mask, avatar;
 - change the account password;
@@ -53,7 +55,7 @@ electron/
   services/               default genres
   i18n.ts                 translations for system dialogs
 src/
-  entities/               TypeORM entities: User, Game, Genre, UserRating, UserGameIcon
+  entities/               TypeORM entities: User, Game, Genre, UserRating, UserGameIcon, UserGameState
   pages/                  Catalog, Genres, Profile, Login, Register
   components/             game card, modals, notifications, layout
   contexts/AuthContext    authentication state

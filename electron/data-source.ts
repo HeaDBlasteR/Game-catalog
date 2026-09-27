@@ -4,6 +4,7 @@ import { Game } from '../src/entities/Game';
 import { UserRating } from '../src/entities/UserRating';
 import { Genre } from '../src/entities/Genre';
 import { UserGameIcon } from '../src/entities/UserGameIcon';
+import { UserGameState } from '../src/entities/UserGameState';
 import path from 'path';
 import { app } from 'electron';
 
@@ -14,7 +15,7 @@ const dbPath = process.env.NODE_ENV === 'development'
 export const AppDataSource = new DataSource({
   type: 'sqlite',
   database: dbPath,
-  entities: [User, Game, UserRating, Genre, UserGameIcon],
+  entities: [User, Game, UserRating, Genre, UserGameIcon, UserGameState],
   synchronize: true,
   logging: false,
 });
