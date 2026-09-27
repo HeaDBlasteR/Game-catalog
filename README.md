@@ -38,7 +38,7 @@ The interface is available in English and Russian, in a light and a dark theme, 
 
 - add, edit and delete games (title, developer, release date, path to the executable, description, icon, multiple genres);
 - pick the game executable in a file dialog; its icon is extracted from the file automatically;
-- manage genres; a starter set of 21 genres is created on first launch;
+- manage genres; a starter set of 21 genres is created on first launch, and deleting a genre warns how many games use it;
 - view catalog statistics: number of games and genres, average rating, total number of ratings.
 
 ## Tech stack
@@ -71,7 +71,7 @@ electron/
 src/
   entities/               TypeORM entities: User, Game, Genre, UserRating, UserGameIcon, UserGameState
   pages/                  Catalog, Genres, Profile, Login, Register
-  components/             game card, modals, notifications, layout
+  components/             game card, shared modal, notifications, layout
   contexts/AuthContext    authentication state
   i18n/                   translations and language context
   theme/                  light and dark theme context

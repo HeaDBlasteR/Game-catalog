@@ -15,4 +15,6 @@ export class Genre {
 
   @ManyToMany(() => Game, game => game.genres)
   games!: Game[];
+
+  gamesCount?: number;
 }

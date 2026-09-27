@@ -109,7 +109,7 @@ async function addGame(title) {
     await card('Zulu Game').locator('.favorite-button').click();
     await toast('Игра удалена из избранного.');
     await page.check('#onlyFavorites');
-    await page.waitForSelector('text=Ничего не найдено');
+    await page.waitForSelector('text=В избранном пусто');
     await page.uncheck('#onlyFavorites');
     await card('Zulu Game').locator('.favorite-button').click();
     await toast('Игра добавлена в избранное.');
@@ -217,7 +217,7 @@ async function addGame(title) {
   });
 
   const pass = results.filter(r => r[0] === 'PASS').length;
-  console.log(`\nИТОГО: ${pass}/${results.length} passed`);
+  console.log(`\nTotal: ${pass}/${results.length} passed`);
   results.filter(r => r[0] === 'FAIL').forEach(r => console.log('  FAIL:', r[1], '-', r[2]));
   if (pass !== results.length) process.exitCode = 1;
   await app.close();

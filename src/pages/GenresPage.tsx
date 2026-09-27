@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Genre } from '../shared/types';
 import NoticeBanner from '../components/NoticeBanner';
 import ConfirmModal from '../components/ConfirmModal';
+import Modal from '../components/Modal';
 import { NoticeState } from '../shared/feedback';
 import { useI18n } from '../i18n/I18nContext';
 
@@ -27,6 +28,7 @@ const GenresPage: React.FC = () => {
   const [editingGenre, setEditingGenre] = useState<Genre | null>(null);
   const [genreToDelete, setGenreToDelete] = useState<Genre | null>(null);
   const [notice, setNotice] = useState<NoticeState | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchGenres();
@@ -41,6 +43,8 @@ const GenresPage: React.FC = () => {
         type: 'error',
         text: errorText(err, 'genres.loadFailed')
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -137,6 +141,7 @@ const GenresPage: React.FC = () => {
         isOpen={Boolean(genreToDelete)}
         title={t('genres.deleteTitle')}
         message={genreToDelete ? t('genres.deleteMessage', { name: genreToDelete.name }) : ''}
+        note={genreToDelete?.gamesCount ? t('genres.deleteAffected', { count: genreToDelete.gamesCount }) : undefined}
         confirmText={t('common.delete')}
         onConfirm={handleGenreDelete}
         onCancel={() => setGenreToDelete(null)}
@@ -148,6 +153,16 @@ const GenresPage: React.FC = () => {
           <button className="btn" type="button" onClick={handleCreateModalOpen}>{t('genres.create')}</button>
         </div>
 
+        {loading ? (
+          <div className="loading-state" role="status">
+            <span className="spinner" aria-hidden="true" />
+            <span>{t('common.loading')}</span>
+          </div>
+        ) : !genres.length ? (
+          <div className="empty-state">
+            <p>{t('genres.empty')}</p>
+          </div>
+        ) : (
         <div className="table-wrap">
           <table className="admin-table">
             <thead>
@@ -171,12 +186,12 @@ const GenresPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       {isCreateModalOpen && (
-        <div className="rating-modal-overlay" role="presentation">
-          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label={t('genres.createLabel')}>
-            <h2>{t('genres.create')}</h2>
+        <Modal label={t('genres.createLabel')} onClose={handleCreateModalClose} className="genre-modal-content">
+          <h2>{t('genres.create')}</h2>
             <form onSubmit={handleCreateSubmit} className="admin-form compact-form">
               <div className="form-grid">
                 <label className="field-wrap" htmlFor="genreCreateName">
@@ -186,7 +201,7 @@ const GenresPage: React.FC = () => {
                     id="genreCreateName"
                     name="name"
                     value={createForm.name}
-                    onChange={e => setCreateForm({ ...createForm, name: e.target.value })}
+                    onChange={e => setCreateForm(prev => ({ ...prev, name: e.target.value }))}
                     required
                   />
                 </label>
@@ -197,7 +212,7 @@ const GenresPage: React.FC = () => {
                     id="genreCreateDescription"
                     name="description"
                     value={createForm.description}
-                    onChange={e => setCreateForm({ ...createForm, description: e.target.value })}
+                    onChange={e => setCreateForm(prev => ({ ...prev, description: e.target.value }))}
                   />
                 </label>
               </div>
@@ -205,15 +220,13 @@ const GenresPage: React.FC = () => {
                 <button className="btn" type="submit">{t('common.save')}</button>
                 <button className="btn btn-light" type="button" onClick={handleCreateModalClose}>{t('common.cancel')}</button>
               </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
 
       {editingGenre && (
-        <div className="rating-modal-overlay" role="presentation">
-          <div className="rating-modal-content genre-modal-content" role="dialog" aria-modal="true" aria-label={t('genres.editLabel')}>
-            <h2>{t('genres.editTitle')}</h2>
+        <Modal label={t('genres.editLabel')} onClose={handleEditModalClose} className="genre-modal-content">
+          <h2>{t('genres.editTitle')}</h2>
             <form onSubmit={handleEditSubmit} className="admin-form compact-form">
               <div className="form-grid">
                 <label className="field-wrap" htmlFor="genreEditName">
@@ -223,7 +236,7 @@ const GenresPage: React.FC = () => {
                     id="genreEditName"
                     name="name"
                     value={editForm.name}
-                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                    onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                     required
                   />
                 </label>
@@ -234,7 +247,7 @@ const GenresPage: React.FC = () => {
                     id="genreEditDescription"
                     name="description"
                     value={editForm.description}
-                    onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                    onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
                   />
                 </label>
               </div>
@@ -242,9 +255,8 @@ const GenresPage: React.FC = () => {
                 <button className="btn" type="submit">{t('common.save')}</button>
                 <button className="btn btn-light" type="button" onClick={handleEditModalClose}>{t('common.cancel')}</button>
               </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
     </DashboardLayout>
   );

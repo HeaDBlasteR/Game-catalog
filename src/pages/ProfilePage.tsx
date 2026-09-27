@@ -3,6 +3,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import NoticeBanner from '../components/NoticeBanner';
 import { useAuth } from '../contexts/AuthContext';
 import { NoticeState } from '../shared/feedback';
+import { formatRussianPhone, hasPhoneNumber } from '../shared/phone';
 import { useI18n } from '../i18n/I18nContext';
 
 type PasswordFormState = {
@@ -22,44 +23,6 @@ type ProfileFormState = {
   email: string;
   phone: string;
   iconPath: string | null;
-};
-
-const formatRussianPhone = (rawValue: string): string => {
-  const digitsOnly = rawValue.replace(/\D/g, '');
-  if (!digitsOnly) return '';
-
-  let normalizedDigits = digitsOnly;
-
-  if (normalizedDigits.startsWith('8')) {
-    normalizedDigits = `7${normalizedDigits.slice(1)}`;
-  } else if (normalizedDigits.startsWith('9')) {
-    normalizedDigits = `7${normalizedDigits}`;
-  } else if (!normalizedDigits.startsWith('7')) {
-    normalizedDigits = `7${normalizedDigits.slice(1)}`;
-  }
-
-  normalizedDigits = normalizedDigits.slice(0, 11);
-  const subscriber = normalizedDigits.slice(1);
-
-  let formatted = '+7';
-
-  if (subscriber.length > 0) {
-    formatted += ` (${subscriber.slice(0, 3)}`;
-  }
-  if (subscriber.length > 3) {
-    formatted += ')';
-  }
-  if (subscriber.length > 3) {
-    formatted += ` ${subscriber.slice(3, 6)}`;
-  }
-  if (subscriber.length > 6) {
-    formatted += `-${subscriber.slice(6, 8)}`;
-  }
-  if (subscriber.length > 8) {
-    formatted += `-${subscriber.slice(8, 10)}`;
-  }
-
-  return formatted;
 };
 
 const ProfilePage: React.FC = () => {
@@ -184,7 +147,7 @@ const ProfilePage: React.FC = () => {
       const updatedUser = await window.electronAPI.updateProfile({
         displayName: form.displayName,
         email: form.email,
-        phone: form.phone.replace(/\D/g, '').length > 1 ? form.phone : '',
+        phone: hasPhoneNumber(form.phone) ? form.phone : '',
         iconPath: form.iconPath
       });
 

@@ -8,7 +8,7 @@ import { UserRating } from '../src/entities/UserRating';
 import { Genre } from '../src/entities/Genre';
 import { UserGameIcon } from '../src/entities/UserGameIcon';
 import { UserGameState } from '../src/entities/UserGameState';
-import type { Game as GameDto, GameReview } from '../src/shared/types';
+import type { Game as GameDto, GameReview, Genre as GenreDto } from '../src/shared/types';
 import { UserRole } from '../src/shared/types';
 import { appError } from '../src/shared/app-error';
 
@@ -198,11 +198,16 @@ export const gameDb = {
 };
 
 export const genreDb = {
-  getAll: async (): Promise<Genre[]> => {
-    const repo = AppDataSource.getRepository(Genre);
-    return repo.find({ order: { name: 'ASC' } });
+  getAll: async (): Promise<GenreDto[]> => {
+    const genres = await AppDataSource.getRepository(Genre)
+      .createQueryBuilder('genre')
+      .loadRelationCountAndMap('genre.gamesCount', 'genre.games')
+      .orderBy('genre.name', 'ASC')
+      .getMany();
+
+    return genres.map(toGenreDto);
   },
-  create: async (name: string, description: string = ''): Promise<Genre> => {
+  create: async (name: string, description: string = ''): Promise<GenreDto> => {
     const repo = AppDataSource.getRepository(Genre);
     const normalizedName = name.trim();
     if (!normalizedName) throw appError('genreNameRequired');
@@ -214,9 +219,9 @@ export const genreDb = {
       name: normalizedName,
       description: description.trim()
     });
-    return repo.save(genre);
+    return toGenreDto(await repo.save(genre));
   },
-  update: async (id: number, name: string, description: string = ''): Promise<Genre> => {
+  update: async (id: number, name: string, description: string = ''): Promise<GenreDto> => {
     const repo = AppDataSource.getRepository(Genre);
     const genre = await repo.findOneBy({ id });
     if (!genre) throw appError('genreNotFound');
@@ -230,7 +235,7 @@ export const genreDb = {
     genre.name = normalizedName;
     genre.description = description.trim();
 
-    return repo.save(genre);
+    return toGenreDto(await repo.save(genre));
   },
   delete: async (id: number): Promise<void> => {
     await AppDataSource.transaction(async manager => {
@@ -354,12 +359,21 @@ function toIsoString(value: Date | string | null | undefined): string | null {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function toGenreDto(genre: Genre): GenreDto {
+  return {
+    id: genre.id,
+    name: genre.name,
+    description: genre.description,
+    gamesCount: genre.gamesCount ?? 0
+  };
+}
+
 function toGameDto(game: Game): GameDto {
   return {
     id: game.id,
     title: game.title,
     description: game.description,
-    genres: game.genres ?? [],
+    genres: (game.genres ?? []).map(toGenreDto),
     releaseDate: game.releaseDate,
     developer: game.developer,
     averageRating: game.averageRating,

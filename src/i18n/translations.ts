@@ -231,6 +231,15 @@ const ru = {
   'time.minutes': '{minutes} мин',
   'time.hoursMinutes': '{hours} ч {minutes} мин',
   'theme.toDark': 'Включить темную тему',
+  'common.loading': 'Загрузка...',
+  'genres.deleteAffected': 'Игр с этим жанром: {count}. После удаления они останутся без него.',
+  'catalog.emptyAdminTitle': 'Каталог пуст',
+  'catalog.emptyAdminText': 'Добавьте первую игру, чтобы она появилась у пользователей.',
+  'catalog.emptyUserTitle': 'Игр пока нет',
+  'catalog.emptyUserText': 'Администратор еще не добавил ни одной игры.',
+  'catalog.emptyFavoritesTitle': 'В избранном пусто',
+  'catalog.emptyFavoritesText': 'Отметьте игру сердечком, чтобы она попала сюда.',
+  'genres.empty': 'Жанров пока нет. Создайте первый жанр.',
   'theme.toLight': 'Включить светлую тему',
 } satisfies Record<`errors.${AppErrorCode}`, string> & Record<string, string>;
 
@@ -460,6 +469,15 @@ const en: Record<TranslationKey, string> = {
   'time.minutes': '{minutes} min',
   'time.hoursMinutes': '{hours}h {minutes}m',
   'theme.toDark': 'Switch to dark theme',
+  'common.loading': 'Loading...',
+  'genres.deleteAffected': 'Games with this genre: {count}. After deletion they will be left without it.',
+  'catalog.emptyAdminTitle': 'The catalog is empty',
+  'catalog.emptyAdminText': 'Add the first game so that users can see it.',
+  'catalog.emptyUserTitle': 'No games yet',
+  'catalog.emptyUserText': 'The administrator has not added any games yet.',
+  'catalog.emptyFavoritesTitle': 'No favorites yet',
+  'catalog.emptyFavoritesText': 'Mark a game with a heart to see it here.',
+  'genres.empty': 'No genres yet. Create the first one.',
   'theme.toLight': 'Switch to light theme',
 };
 

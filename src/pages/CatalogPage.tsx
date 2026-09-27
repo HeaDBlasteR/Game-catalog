@@ -4,6 +4,7 @@ import GameCard from '../components/GameCard';
 import RatingModal from '../components/RatingModal';
 import ConfirmModal from '../components/ConfirmModal';
 import GameDetailsModal from '../components/GameDetailsModal';
+import Modal from '../components/Modal';
 import { Game, Genre, GameInput, GameSort } from '../shared/types';
 import DashboardLayout from '../components/DashboardLayout.tsx';
 import NoticeBanner from '../components/NoticeBanner';
@@ -37,6 +38,7 @@ const CatalogPage: React.FC = () => {
   const [gameToDelete, setGameToDelete] = useState<Game | null>(null);
   const [detailsGame, setDetailsGame] = useState<Game | null>(null);
   const [formData, setFormData] = useState<GameInput>(emptyGameForm);
+  const [loading, setLoading] = useState(true);
   const isAdmin = user?.role === 'admin';
   const pageTitle = isAdmin ? t('catalog.titleAdmin') : t('catalog.title');
   const pageSubtitle = isAdmin
@@ -60,6 +62,8 @@ const CatalogPage: React.FC = () => {
         type: 'error',
         text: errorText(err, 'catalog.loadFailed')
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,19 +153,19 @@ const CatalogPage: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleGenreToggle = (genreId: number, checked: boolean) => {
-    if (checked) {
-      if (formData.genreIds.includes(genreId)) return;
-      setFormData({ ...formData, genreIds: [...formData.genreIds, genreId] });
-      return;
-    }
+    setFormData(prev => {
+      if (checked) {
+        return prev.genreIds.includes(genreId)
+          ? prev
+          : { ...prev, genreIds: [...prev.genreIds, genreId] };
+      }
 
-    setFormData({
-      ...formData,
-      genreIds: formData.genreIds.filter(id => id !== genreId)
+      return { ...prev, genreIds: prev.genreIds.filter(id => id !== genreId) };
     });
   };
 
@@ -435,15 +439,12 @@ const CatalogPage: React.FC = () => {
       </div>
 
       {isAdmin && showForm && (
-        <div className="rating-modal-overlay" role="presentation" onClick={resetForm}>
-          <div
-            className="rating-modal-content game-form-modal-content"
-            role="dialog"
-            aria-modal="true"
-            aria-label={editingGame ? t('catalog.formEditLabel') : t('catalog.formAddLabel')}
-            onClick={event => event.stopPropagation()}
-          >
-            <form onSubmit={handleGameSubmit} className="admin-form compact-form">
+        <Modal
+          label={editingGame ? t('catalog.formEditLabel') : t('catalog.formAddLabel')}
+          onClose={resetForm}
+          className="game-form-modal-content"
+        >
+          <form onSubmit={handleGameSubmit} className="admin-form compact-form">
               <h3>{editingGame ? t('catalog.formEditTitle') : t('catalog.formAddTitle')}</h3>
               <div className="form-grid">
                 <label className="field-wrap" htmlFor="title">
@@ -513,15 +514,27 @@ const CatalogPage: React.FC = () => {
                 <button className="btn" type="submit">{t('common.save')}</button>
                 <button className="btn btn-light" type="button" onClick={resetForm}>{t('common.cancel')}</button>
               </div>
-            </form>
-          </div>
-        </div>
+          </form>
+        </Modal>
       )}
 
-      {!filteredGames.length ? (
+      {loading ? (
+        <div className="loading-state" role="status">
+          <span className="spinner" aria-hidden="true" />
+          <span>{t('common.loading')}</span>
+        </div>
+      ) : !games.length ? (
         <div className="empty-state">
-          <h3>{t('catalog.emptyTitle')}</h3>
-          <p>{t('catalog.emptyText')}</p>
+          <h3>{isAdmin ? t('catalog.emptyAdminTitle') : t('catalog.emptyUserTitle')}</h3>
+          <p>{isAdmin ? t('catalog.emptyAdminText') : t('catalog.emptyUserText')}</p>
+          {isAdmin && (
+            <button className="btn" type="button" onClick={handleStartCreate}>{t('catalog.addGame')}</button>
+          )}
+        </div>
+      ) : !filteredGames.length ? (
+        <div className="empty-state">
+          <h3>{onlyFavorites && !games.some(game => game.favorite) ? t('catalog.emptyFavoritesTitle') : t('catalog.emptyTitle')}</h3>
+          <p>{onlyFavorites && !games.some(game => game.favorite) ? t('catalog.emptyFavoritesText') : t('catalog.emptyText')}</p>
         </div>
       ) : (
         <div className="games-grid">

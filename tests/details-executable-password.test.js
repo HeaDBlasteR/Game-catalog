@@ -192,7 +192,7 @@ async function login(u, p) {
   });
 
   const pass = results.filter(r => r[0] === 'PASS').length;
-  console.log(`\nИТОГО: ${pass}/${results.length} passed`);
+  console.log(`\nTotal: ${pass}/${results.length} passed`);
   results.filter(r => r[0] === 'FAIL').forEach(r => console.log('  FAIL:', r[1], '-', r[2]));
   if (pass !== results.length) process.exitCode = 1;
   await app.close();
