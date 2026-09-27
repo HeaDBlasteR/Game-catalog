@@ -21,9 +21,20 @@ async function step(name, fn) {
     results.push(['FAIL', name, e.message.split('\n')[0]]);
     console.log('FAIL', name, '-', e.message.split('\n').slice(0, 3).join(' | '));
     try { await page.screenshot({ path: path.join(SHOTS, `THEME-FAIL-${results.length}.png`) }); } catch {}
+    await page.keyboard.press('Escape').catch(() => {});
   }
 }
 const expect = (c, m) => { if (!c) throw new Error(m); };
+
+async function useFixedWindowSize() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window) {
+      window.setSize(1280, 800);
+      window.center();
+    }
+  });
+}
 const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
 const bodyBackground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
 
@@ -37,6 +48,7 @@ async function launch(userData) {
     env
   });
   page = await app.firstWindow();
+  await useFixedWindowSize();
   await page.waitForSelector('#login-username', { timeout: 20000 });
 }
 

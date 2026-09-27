@@ -58,7 +58,7 @@ The app runs in two processes:
 - **Main process** (`electron/`) handles the database, the file system and launching games. IPC handlers are grouped by area: `auth`, `games`, `genres`, `ratings`, `admin`. The current user is kept in a session in the main process and identified by the window that sent the request.
 - **Renderer** (`src/`) is the React UI. It has no direct access to Node.js and talks to the main process only through the `window.electronAPI` bridge exposed by the preload script.
 
-```
+```text
 electron/
   main.ts                 entry point, window creation, database initialization
   preload.ts              API exposed to the UI (contextBridge)

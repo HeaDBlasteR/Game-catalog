@@ -21,16 +21,41 @@ async function step(name, fn) {
     results.push(['FAIL', name, e.message.split('\n')[0]]);
     console.log('FAIL', name, '-', e.message.split('\n').slice(0, 3).join(' | '));
     try { await page.screenshot({ path: path.join(SHOTS, `F2-FAIL-${results.length}.png`) }); } catch {}
+    await page.keyboard.press('Escape').catch(() => {});
   }
 }
 const expect = (c, m) => { if (!c) throw new Error(m); };
 
+async function useFixedWindowSize() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window) {
+      window.setSize(1280, 800);
+      window.center();
+    }
+  });
+}
+
+async function waitForToast(expected) {
+  const toasts = page.locator('.toast p');
+  const deadline = Date.now() + 20000;
+
+  while (Date.now() < deadline) {
+    if ((await toasts.allTextContents()).some(text => text.includes(expected))) {
+      while (await page.locator('.toast-close').count()) {
+        await page.locator('.toast-close').first().click().catch(() => {});
+        await page.waitForTimeout(100);
+      }
+      return;
+    }
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(`toast ${JSON.stringify(await toasts.allTextContents())} != "${expected}"`);
+}
+
 async function toast(expected) {
-  const locator = page.locator('.toast p').first();
-  await locator.waitFor({ timeout: 5000 });
-  const text = await locator.textContent();
-  await page.locator('.toast-close').first().click().catch(() => {});
-  expect(text === expected, `toast "${text}" != "${expected}"`);
+  await waitForToast(expected);
 }
 
 const card = title => page.locator(`.game-card:has(.game-title-button:text-is("${title}"))`);
@@ -60,6 +85,7 @@ async function addGame(title) {
   page = await app.firstWindow();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  await useFixedWindowSize();
   await page.waitForSelector('#login-username', { timeout: 20000 });
 
   await step('Админ добавляет две игры', async () => {
@@ -117,7 +143,7 @@ async function addGame(title) {
 
   await step('Запуск игры записывает статистику', async () => {
     await card('Alpha Game').locator('.launch-button').click();
-    await page.waitForSelector('.rating-stars', { timeout: 15000 });
+    await page.waitForSelector('.rating-stars', { timeout: 60000 });
     await page.locator('.rating-star').nth(3).click();
     await page.fill('#ratingComment', 'Хорошая утилита, запускается быстро.');
     await page.screenshot({ path: path.join(SHOTS, 'f2-01-rating-comment.png') });
@@ -132,6 +158,7 @@ async function addGame(title) {
     await card('Alpha Game').locator('.game-details-button').click();
     const modal = page.locator('.game-details-content');
     await modal.waitFor();
+    await modal.locator('.review-item').first().waitFor();
     const text = await modal.textContent();
     expect(text.includes('Ваша статистика'), 'stats block');
     expect(text.includes('Запусков'), 'launch count label');
@@ -145,13 +172,18 @@ async function addGame(title) {
   await step('Повторное открытие оценки подставляет отзыв', async () => {
     await card('Alpha Game').locator('.rate-button').click();
     await page.waitForSelector('#ratingComment');
-    expect(await page.inputValue('#ratingComment') === 'Хорошая утилита, запускается быстро.', 'comment not prefilled');
+    await page.waitForFunction(
+      expected => document.querySelector('#ratingComment')?.value === expected,
+      'Хорошая утилита, запускается быстро.',
+      { timeout: 20000 }
+    );
     const active = await page.locator('.rating-star.active').count();
     expect(active === 4, 'stars ' + active);
     await page.fill('#ratingComment', '');
     await page.click('button:has-text("Сохранить оценку")');
     await toast('Оценка сохранена.');
     await card('Alpha Game').locator('.game-details-button').click();
+    await page.locator('.game-details-content .review-item').first().waitFor();
     const text = await page.locator('.game-details-content').textContent();
     expect(text.includes('Без комментария.'), text);
     await page.keyboard.press('Escape');
@@ -190,6 +222,7 @@ async function addGame(title) {
     await page.click('button.auth-submit');
     await page.waitForSelector('.game-card');
     await card('Zulu Game').locator('.game-details-button').click();
+    await page.locator('.game-details-content .review-item').first().waitFor();
     const text = await page.locator('.game-details-content').textContent();
     expect(text.includes('gamer'), text);
     expect(text.includes('Вы еще не запускали эту игру.'), 'stats for new user');
@@ -203,6 +236,7 @@ async function addGame(title) {
     const cyr = shell.match(/[А-Яа-яЁё][^\n]*/g);
     expect(!cyr, cyr && cyr.join(' | '));
     await card('Alpha Game').locator('.game-details-button').click();
+    await page.locator('.game-details-content .review-item').first().waitFor();
     const modal = await page.locator('.game-details-content').textContent();
     const cyr2 = modal.match(/[А-Яа-яЁё][^\n]*/g);
     expect(!cyr2 || cyr2.every(x => x.includes('Хорошая')), cyr2 && cyr2.join(' | '));

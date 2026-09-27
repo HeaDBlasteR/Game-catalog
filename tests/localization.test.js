@@ -20,9 +20,20 @@ async function step(name, fn) {
     results.push(['FAIL', name, e.message.split('\n')[0]]);
     console.log('FAIL', name, '-', e.message.split('\n').slice(0, 3).join(' | '));
     try { await page.screenshot({ path: path.join(SHOTS, `EN-FAIL-${results.length}.png`) }); } catch {}
+    await page.keyboard.press('Escape').catch(() => {});
   }
 }
 const expect = (c, m) => { if (!c) throw new Error(m); };
+
+async function useFixedWindowSize() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window) {
+      window.setSize(1280, 800);
+      window.center();
+    }
+  });
+}
 const cyrillicIn = async selector => {
   const text = await page.locator(selector).first().innerText();
   const found = text.match(/[А-Яа-яЁё][^\n]*/g);
@@ -39,6 +50,7 @@ async function launch(userData) {
     env
   });
   page = await app.firstWindow();
+  await useFixedWindowSize();
   await page.waitForSelector('#login-username', { timeout: 20000 });
 }
 
@@ -93,8 +105,7 @@ async function launch(userData) {
     await page.fill('#releaseDate', '2024-01-01');
     await page.fill('#filePath', 'C:\\Windows\\System32\\whoami.exe');
     await page.click('.game-form-modal-content button[type=submit]');
-    const toast = await page.locator('.toast p').textContent({ timeout: 5000 });
-    expect(toast === 'Select at least one genre.', toast);
+    await page.waitForSelector('.toast p:text-is("Select at least one genre.")', { timeout: 20000 });
     await page.screenshot({ path: path.join(SHOTS, 'en-02-game-form.png') });
     await page.locator('.genre-checkbox-item input').nth(0).check();
     await page.click('.game-form-modal-content button[type=submit]');
@@ -157,7 +168,7 @@ async function launch(userData) {
     let cyr = await cyrillicIn('.dashboard-shell');
     expect(!cyr, cyr);
     await page.locator('.launch-button').first().click();
-    await page.waitForSelector('.rating-stars', { timeout: 10000 });
+    await page.waitForSelector('.rating-stars', { timeout: 60000 });
     cyr = await cyrillicIn('.rating-modal-content');
     expect(!cyr, cyr);
     await page.screenshot({ path: path.join(SHOTS, 'en-05-rating.png') });

@@ -307,18 +307,27 @@ const CatalogPage: React.FC = () => {
     }
   };
 
+  const byTitle = (a: Game, b: Game) => a.title.localeCompare(b.title);
+  const played = (game: Game) => new Date(game.lastPlayedAt ?? 0).getTime();
+
   const sortGames = (a: Game, b: Game) => {
     switch (sort) {
       case 'rating':
-        return b.averageRating - a.averageRating || b.totalRatings - a.totalRatings;
+        return (b.averageRating - a.averageRating)
+          || (b.totalRatings - a.totalRatings)
+          || byTitle(a, b);
       case 'playtime':
-        return b.playtimeSeconds - a.playtimeSeconds;
+        return (b.playtimeSeconds - a.playtimeSeconds)
+          || (b.launchCount - a.launchCount)
+          || (played(b) - played(a))
+          || byTitle(a, b);
       case 'lastPlayed':
-        return new Date(b.lastPlayedAt ?? 0).getTime() - new Date(a.lastPlayedAt ?? 0).getTime();
+        return (played(b) - played(a)) || byTitle(a, b);
       case 'newest':
-        return (new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()) || (b.id - a.id);
+        return (new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime())
+          || (b.id - a.id);
       default:
-        return a.title.localeCompare(b.title);
+        return byTitle(a, b);
     }
   };
 

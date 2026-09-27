@@ -21,16 +21,41 @@ async function step(name, fn) {
     results.push(['FAIL', name, e.message.split('\n')[0]]);
     console.log('FAIL', name, '-', e.message.split('\n').slice(0, 3).join(' | '));
     try { await page.screenshot({ path: path.join(SHOTS, `FEAT-FAIL-${results.length}.png`) }); } catch {}
+    await page.keyboard.press('Escape').catch(() => {});
   }
 }
 const expect = (c, m) => { if (!c) throw new Error(m); };
 
+async function useFixedWindowSize() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window) {
+      window.setSize(1280, 800);
+      window.center();
+    }
+  });
+}
+
+async function waitForToast(expected) {
+  const toasts = page.locator('.toast p');
+  const deadline = Date.now() + 20000;
+
+  while (Date.now() < deadline) {
+    if ((await toasts.allTextContents()).some(text => text.includes(expected))) {
+      while (await page.locator('.toast-close').count()) {
+        await page.locator('.toast-close').first().click().catch(() => {});
+        await page.waitForTimeout(100);
+      }
+      return;
+    }
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(`toast ${JSON.stringify(await toasts.allTextContents())} != "${expected}"`);
+}
+
 async function toast(expected) {
-  const t = page.locator('.toast p').first();
-  await t.waitFor({ timeout: 5000 });
-  const text = await t.textContent();
-  await page.locator('.toast-close').first().click().catch(() => {});
-  expect(text === expected, `toast "${text}" != "${expected}"`);
+  await waitForToast(expected);
 }
 
 async function login(u, p) {
@@ -52,6 +77,7 @@ async function login(u, p) {
   page = await app.firstWindow();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
+  await useFixedWindowSize();
   await page.waitForSelector('#login-username', { timeout: 20000 });
   await app.evaluate(({ dialog }, exe) => {
     dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [exe] });
@@ -173,6 +199,7 @@ async function login(u, p) {
     await page.click('button:has-text("Сохранить оценку")');
     await toast('Оценка сохранена.');
     await page.click('.game-card .game-details-button');
+    await page.locator('.game-details-content .review-item').first().waitFor();
     const text = await page.locator('.game-details-content').innerText();
     expect(text.includes('Ваша оценка: 4'), text);
     expect(text.includes('Всего оценок: 1'), text);

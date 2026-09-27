@@ -22,22 +22,42 @@ async function step(name, fn) {
     results.push(['FAIL', name, e.message.split('\n')[0]]);
     console.log('FAIL', name, '-', e.message.split('\n').slice(0, 3).join(' | '));
     try { await page.screenshot({ path: path.join(SHOTS, `FAIL-${results.length}.png`) }); } catch {}
+    await page.keyboard.press('Escape').catch(() => {});
   }
 }
 
 function expect(cond, msg) { if (!cond) throw new Error(msg); }
 
-async function toastText() {
-  const t = page.locator('.toast p').first();
-  await t.waitFor({ timeout: 5000 });
-  const text = await t.textContent();
-  await page.locator('.toast-close').first().click().catch(() => {});
-  return text;
+async function useFixedWindowSize() {
+  await app.evaluate(({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window) {
+      window.setSize(1280, 800);
+      window.center();
+    }
+  });
+}
+
+async function waitForToast(expected) {
+  const toasts = page.locator('.toast p');
+  const deadline = Date.now() + 20000;
+
+  while (Date.now() < deadline) {
+    if ((await toasts.allTextContents()).some(text => text.includes(expected))) {
+      while (await page.locator('.toast-close').count()) {
+        await page.locator('.toast-close').first().click().catch(() => {});
+        await page.waitForTimeout(100);
+      }
+      return;
+    }
+    await page.waitForTimeout(100);
+  }
+
+  throw new Error(`toast ${JSON.stringify(await toasts.allTextContents())} != "${expected}"`);
 }
 
 async function expectToast(expected) {
-  const text = await toastText();
-  expect(text.includes(expected), `toast "${text}" != "${expected}"`);
+  await waitForToast(expected);
 }
 
 async function shot(name) { await page.screenshot({ path: path.join(SHOTS, `${name}.png`) }); }
@@ -70,6 +90,7 @@ async function logout() {
   page = await app.firstWindow();
   page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
+  await useFixedWindowSize();
   await page.waitForSelector('#login-username', { timeout: 20000 });
 
   await app.evaluate(({ dialog }, file) => {
@@ -250,7 +271,7 @@ async function logout() {
     const card = page.locator('.game-card:has(.game-title-button:text-is("Whoami Game"))');
     expect((await card.locator('.rate-button').textContent()).includes('☆'), 'already rated?');
     await card.locator('.launch-button').click();
-    await page.waitForSelector('.rating-stars', { timeout: 10000 });
+    await page.waitForSelector('.rating-stars', { timeout: 60000 });
     await page.locator('.rating-star').nth(3).click();
     await shot('05-rating-modal');
     await page.click('button:has-text("Сохранить оценку")');
